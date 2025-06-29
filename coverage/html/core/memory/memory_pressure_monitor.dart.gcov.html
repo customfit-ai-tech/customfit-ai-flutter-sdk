@@ -1,0 +1,331 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - core/memory/memory_pressure_monitor.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory core/memory">core/memory</a> - memory_pressure_monitor.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryLo">73.5&nbsp;%</td>
+            <td class="headerCovTableEntry">98</td>
+            <td class="headerCovTableEntry">72</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-06-25 11:02:34</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : import 'dart:async';</span>
+<span id="L2"><span class="lineNum">       2</span>              : import 'dart:io';</span>
+<span id="L3"><span class="lineNum">       3</span>              : import '../../logging/logger.dart';</span>
+<span id="L4"><span class="lineNum">       4</span>              : import 'memory_pressure_level.dart';</span>
+<span id="L5"><span class="lineNum">       5</span>              : import 'platform/memory_platform_interface.dart';</span>
+<span id="L6"><span class="lineNum">       6</span>              : import 'platform/android_memory_detector.dart';</span>
+<span id="L7"><span class="lineNum">       7</span>              : import 'platform/ios_memory_detector.dart';</span>
+<span id="L8"><span class="lineNum">       8</span>              : </span>
+<span id="L9"><span class="lineNum">       9</span>              : /// Monitors system memory pressure and notifies listeners</span>
+<span id="L10"><span class="lineNum">      10</span>              : class MemoryPressureMonitor {</span>
+<span id="L11"><span class="lineNum">      11</span>              :   static MemoryPressureMonitor? _instance;</span>
+<span id="L12"><span class="lineNum">      12</span> <span class="tlaGNC">          32 :   static MemoryPressureMonitor get instance =&gt; _instance ??= MemoryPressureMonitor._();</span></span>
+<span id="L13"><span class="lineNum">      13</span>              :   </span>
+<span id="L14"><span class="lineNum">      14</span>              :   final List&lt;MemoryPressureListener&gt; _listeners = [];</span>
+<span id="L15"><span class="lineNum">      15</span>              :   final StreamController&lt;MemoryPressureLevel&gt; _pressureController = StreamController&lt;MemoryPressureLevel&gt;.broadcast();</span>
+<span id="L16"><span class="lineNum">      16</span>              :   </span>
+<span id="L17"><span class="lineNum">      17</span>              :   MemoryPlatformInterface? _platformDetector;</span>
+<span id="L18"><span class="lineNum">      18</span>              :   StreamSubscription&lt;MemoryInfo&gt;? _monitoringSubscription;</span>
+<span id="L19"><span class="lineNum">      19</span>              :   MemoryPressureLevel _currentLevel = MemoryPressureLevel.low;</span>
+<span id="L20"><span class="lineNum">      20</span>              :   MemoryInfo? _lastMemoryInfo;</span>
+<span id="L21"><span class="lineNum">      21</span>              :   Timer? _fallbackTimer;</span>
+<span id="L22"><span class="lineNum">      22</span>              :   </span>
+<span id="L23"><span class="lineNum">      23</span>              :   // Configurable thresholds</span>
+<span id="L24"><span class="lineNum">      24</span>              :   double _lowThreshold = 0.70;      // &lt;70% usage</span>
+<span id="L25"><span class="lineNum">      25</span>              :   double _mediumThreshold = 0.85;   // 70-85% usage</span>
+<span id="L26"><span class="lineNum">      26</span>              :   double _highThreshold = 0.95;     // 85-95% usage</span>
+<span id="L27"><span class="lineNum">      27</span>              :   </span>
+<span id="L28"><span class="lineNum">      28</span>              :   Duration _monitoringInterval = const Duration(seconds: 10);</span>
+<span id="L29"><span class="lineNum">      29</span>              :   bool _isMonitoring = false;</span>
+<span id="L30"><span class="lineNum">      30</span>              :   </span>
+<span id="L31"><span class="lineNum">      31</span> <span class="tlaGNC">          16 :   MemoryPressureMonitor._() {</span></span>
+<span id="L32"><span class="lineNum">      32</span> <span class="tlaGNC">          16 :     _initializePlatformDetector();</span></span>
+<span id="L33"><span class="lineNum">      33</span>              :   }</span>
+<span id="L34"><span class="lineNum">      34</span>              :   </span>
+<span id="L35"><span class="lineNum">      35</span> <span class="tlaGNC">          16 :   void _initializePlatformDetector() {</span></span>
+<span id="L36"><span class="lineNum">      36</span> <span class="tlaGNC">          16 :     if (Platform.isAndroid) {</span></span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaUNC">           0 :       _platformDetector = AndroidMemoryDetector();</span></span>
+<span id="L38"><span class="lineNum">      38</span> <span class="tlaGNC">          16 :     } else if (Platform.isIOS) {</span></span>
+<span id="L39"><span class="lineNum">      39</span> <span class="tlaUNC">           0 :       _platformDetector = IOSMemoryDetector();</span></span>
+<span id="L40"><span class="lineNum">      40</span>              :     } else {</span>
+<span id="L41"><span class="lineNum">      41</span> <span class="tlaGNC">          48 :       Logger.w('Memory pressure monitoring not supported on ${Platform.operatingSystem}');</span></span>
+<span id="L42"><span class="lineNum">      42</span>              :     }</span>
+<span id="L43"><span class="lineNum">      43</span>              :   }</span>
+<span id="L44"><span class="lineNum">      44</span>              :   </span>
+<span id="L45"><span class="lineNum">      45</span>              :   /// Current memory pressure level</span>
+<span id="L46"><span class="lineNum">      46</span> <span class="tlaGNC">           2 :   MemoryPressureLevel get currentPressure =&gt; _currentLevel;</span></span>
+<span id="L47"><span class="lineNum">      47</span>              :   </span>
+<span id="L48"><span class="lineNum">      48</span>              :   /// Stream of pressure level changes</span>
+<span id="L49"><span class="lineNum">      49</span> <span class="tlaGNC">           3 :   Stream&lt;MemoryPressureLevel&gt; get pressureChanges =&gt; _pressureController.stream;</span></span>
+<span id="L50"><span class="lineNum">      50</span>              :   </span>
+<span id="L51"><span class="lineNum">      51</span>              :   /// Last recorded memory information</span>
+<span id="L52"><span class="lineNum">      52</span> <span class="tlaGNC">           2 :   MemoryInfo? get lastMemoryInfo =&gt; _lastMemoryInfo;</span></span>
+<span id="L53"><span class="lineNum">      53</span>              :   </span>
+<span id="L54"><span class="lineNum">      54</span>              :   /// Whether monitoring is currently active</span>
+<span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">           2 :   bool get isMonitoring =&gt; _isMonitoring;</span></span>
+<span id="L56"><span class="lineNum">      56</span>              :   </span>
+<span id="L57"><span class="lineNum">      57</span>              :   /// Configure monitoring thresholds</span>
+<span id="L58"><span class="lineNum">      58</span> <span class="tlaGNC">           1 :   void configureThresholds({</span></span>
+<span id="L59"><span class="lineNum">      59</span>              :     double? lowThreshold,</span>
+<span id="L60"><span class="lineNum">      60</span>              :     double? mediumThreshold,</span>
+<span id="L61"><span class="lineNum">      61</span>              :     double? highThreshold,</span>
+<span id="L62"><span class="lineNum">      62</span>              :   }) {</span>
+<span id="L63"><span class="lineNum">      63</span> <span class="tlaGNC">           1 :     if (lowThreshold != null) _lowThreshold = lowThreshold;</span></span>
+<span id="L64"><span class="lineNum">      64</span> <span class="tlaGNC">           1 :     if (mediumThreshold != null) _mediumThreshold = mediumThreshold;</span></span>
+<span id="L65"><span class="lineNum">      65</span> <span class="tlaGNC">           1 :     if (highThreshold != null) _highThreshold = highThreshold;</span></span>
+<span id="L66"><span class="lineNum">      66</span>              :     </span>
+<span id="L67"><span class="lineNum">      67</span>              :     // Validate thresholds</span>
+<span id="L68"><span class="lineNum">      68</span> <span class="tlaGNC">           3 :     assert(_lowThreshold &lt; _mediumThreshold, 'Low threshold must be less than medium');</span></span>
+<span id="L69"><span class="lineNum">      69</span> <span class="tlaGNC">           3 :     assert(_mediumThreshold &lt; _highThreshold, 'Medium threshold must be less than high');</span></span>
+<span id="L70"><span class="lineNum">      70</span> <span class="tlaGNC">           2 :     assert(_highThreshold &lt;= 1.0, 'High threshold must be &lt;= 1.0');</span></span>
+<span id="L71"><span class="lineNum">      71</span>              :   }</span>
+<span id="L72"><span class="lineNum">      72</span>              :   </span>
+<span id="L73"><span class="lineNum">      73</span>              :   /// Configure monitoring interval</span>
+<span id="L74"><span class="lineNum">      74</span> <span class="tlaGNC">          14 :   void configureInterval(Duration interval) {</span></span>
+<span id="L75"><span class="lineNum">      75</span> <span class="tlaGNC">          14 :     _monitoringInterval = interval;</span></span>
+<span id="L76"><span class="lineNum">      76</span>              :     </span>
+<span id="L77"><span class="lineNum">      77</span>              :     // Restart monitoring if active</span>
+<span id="L78"><span class="lineNum">      78</span> <span class="tlaGNC">          14 :     if (_isMonitoring) {</span></span>
+<span id="L79"><span class="lineNum">      79</span> <span class="tlaUNC">           0 :       stopMonitoring();</span></span>
+<span id="L80"><span class="lineNum">      80</span> <span class="tlaUNC">           0 :       startMonitoring();</span></span>
+<span id="L81"><span class="lineNum">      81</span>              :     }</span>
+<span id="L82"><span class="lineNum">      82</span>              :   }</span>
+<span id="L83"><span class="lineNum">      83</span>              :   </span>
+<span id="L84"><span class="lineNum">      84</span>              :   /// Start monitoring memory pressure</span>
+<span id="L85"><span class="lineNum">      85</span> <span class="tlaGNC">          16 :   void startMonitoring() {</span></span>
+<span id="L86"><span class="lineNum">      86</span> <span class="tlaGNC">          16 :     if (_isMonitoring) {</span></span>
+<span id="L87"><span class="lineNum">      87</span> <span class="tlaUNC">           0 :       Logger.d('Memory pressure monitoring already active');</span></span>
+<span id="L88"><span class="lineNum">      88</span>              :       return;</span>
+<span id="L89"><span class="lineNum">      89</span>              :     }</span>
+<span id="L90"><span class="lineNum">      90</span>              :     </span>
+<span id="L91"><span class="lineNum">      91</span> <span class="tlaGNC">          16 :     if (_platformDetector == null || !_platformDetector!.isSupported) {</span></span>
+<span id="L92"><span class="lineNum">      92</span> <span class="tlaGNC">          16 :       Logger.w('Memory pressure monitoring not supported on this platform');</span></span>
+<span id="L93"><span class="lineNum">      93</span> <span class="tlaGNC">          16 :       _startFallbackMonitoring();</span></span>
+<span id="L94"><span class="lineNum">      94</span>              :       return;</span>
+<span id="L95"><span class="lineNum">      95</span>              :     }</span>
+<span id="L96"><span class="lineNum">      96</span>              :     </span>
+<span id="L97"><span class="lineNum">      97</span> <span class="tlaUNC">           0 :     _isMonitoring = true;</span></span>
+<span id="L98"><span class="lineNum">      98</span> <span class="tlaUNC">           0 :     Logger.i('Starting memory pressure monitoring with interval: $_monitoringInterval');</span></span>
+<span id="L99"><span class="lineNum">      99</span>              :     </span>
+<span id="L100"><span class="lineNum">     100</span>              :     // Start platform-specific monitoring</span>
+<span id="L101"><span class="lineNum">     101</span> <span class="tlaUNC">           0 :     final memoryStream = _platformDetector!.startMonitoring(interval: _monitoringInterval);</span></span>
+<span id="L102"><span class="lineNum">     102</span>              :     </span>
+<span id="L103"><span class="lineNum">     103</span> <span class="tlaUNC">           0 :     _monitoringSubscription = memoryStream.listen(</span></span>
+<span id="L104"><span class="lineNum">     104</span> <span class="tlaUNC">           0 :       _handleMemoryInfo,</span></span>
+<span id="L105"><span class="lineNum">     105</span> <span class="tlaUNC">           0 :       onError: (error) {</span></span>
+<span id="L106"><span class="lineNum">     106</span> <span class="tlaUNC">           0 :         Logger.e('Memory monitoring error: $error');</span></span>
+<span id="L107"><span class="lineNum">     107</span> <span class="tlaUNC">           0 :         _startFallbackMonitoring();</span></span>
+<span id="L108"><span class="lineNum">     108</span>              :       },</span>
+<span id="L109"><span class="lineNum">     109</span>              :     );</span>
+<span id="L110"><span class="lineNum">     110</span>              :     </span>
+<span id="L111"><span class="lineNum">     111</span>              :     // Get initial reading</span>
+<span id="L112"><span class="lineNum">     112</span> <span class="tlaUNC">           0 :     _checkMemoryPressure();</span></span>
+<span id="L113"><span class="lineNum">     113</span>              :   }</span>
+<span id="L114"><span class="lineNum">     114</span>              :   </span>
+<span id="L115"><span class="lineNum">     115</span>              :   /// Stop monitoring memory pressure</span>
+<span id="L116"><span class="lineNum">     116</span> <span class="tlaGNC">          15 :   void stopMonitoring() {</span></span>
+<span id="L117"><span class="lineNum">     117</span> <span class="tlaGNC">          15 :     if (!_isMonitoring) return;</span></span>
+<span id="L118"><span class="lineNum">     118</span>              :     </span>
+<span id="L119"><span class="lineNum">     119</span> <span class="tlaUNC">           0 :     _isMonitoring = false;</span></span>
+<span id="L120"><span class="lineNum">     120</span> <span class="tlaUNC">           0 :     _monitoringSubscription?.cancel();</span></span>
+<span id="L121"><span class="lineNum">     121</span> <span class="tlaUNC">           0 :     _monitoringSubscription = null;</span></span>
+<span id="L122"><span class="lineNum">     122</span> <span class="tlaUNC">           0 :     _fallbackTimer?.cancel();</span></span>
+<span id="L123"><span class="lineNum">     123</span> <span class="tlaUNC">           0 :     _fallbackTimer = null;</span></span>
+<span id="L124"><span class="lineNum">     124</span> <span class="tlaUNC">           0 :     _platformDetector?.stopMonitoring();</span></span>
+<span id="L125"><span class="lineNum">     125</span>              :     </span>
+<span id="L126"><span class="lineNum">     126</span> <span class="tlaUNC">           0 :     Logger.i('Stopped memory pressure monitoring');</span></span>
+<span id="L127"><span class="lineNum">     127</span>              :   }</span>
+<span id="L128"><span class="lineNum">     128</span>              :   </span>
+<span id="L129"><span class="lineNum">     129</span>              :   /// Add a listener for pressure changes</span>
+<span id="L130"><span class="lineNum">     130</span> <span class="tlaGNC">          16 :   void addListener(MemoryPressureListener listener) {</span></span>
+<span id="L131"><span class="lineNum">     131</span> <span class="tlaGNC">          32 :     _listeners.add(listener);</span></span>
+<span id="L132"><span class="lineNum">     132</span>              :   }</span>
+<span id="L133"><span class="lineNum">     133</span>              :   </span>
+<span id="L134"><span class="lineNum">     134</span>              :   /// Remove a listener</span>
+<span id="L135"><span class="lineNum">     135</span> <span class="tlaGNC">          15 :   void removeListener(MemoryPressureListener listener) {</span></span>
+<span id="L136"><span class="lineNum">     136</span> <span class="tlaGNC">          30 :     _listeners.remove(listener);</span></span>
+<span id="L137"><span class="lineNum">     137</span>              :   }</span>
+<span id="L138"><span class="lineNum">     138</span>              :   </span>
+<span id="L139"><span class="lineNum">     139</span>              :   /// Force an immediate memory check</span>
+<span id="L140"><span class="lineNum">     140</span> <span class="tlaGNC">           1 :   Future&lt;void&gt; checkMemoryPressure() async {</span></span>
+<span id="L141"><span class="lineNum">     141</span> <span class="tlaGNC">           1 :     await _checkMemoryPressure();</span></span>
+<span id="L142"><span class="lineNum">     142</span>              :   }</span>
+<span id="L143"><span class="lineNum">     143</span>              :   </span>
+<span id="L144"><span class="lineNum">     144</span> <span class="tlaGNC">           1 :   Future&lt;void&gt; _checkMemoryPressure() async {</span></span>
+<span id="L145"><span class="lineNum">     145</span> <span class="tlaGNC">           1 :     if (_platformDetector == null) return;</span></span>
+<span id="L146"><span class="lineNum">     146</span>              :     </span>
+<span id="L147"><span class="lineNum">     147</span>              :     try {</span>
+<span id="L148"><span class="lineNum">     148</span> <span class="tlaUNC">           0 :       final memoryInfo = await _platformDetector!.getMemoryInfo();</span></span>
+<span id="L149"><span class="lineNum">     149</span> <span class="tlaUNC">           0 :       _handleMemoryInfo(memoryInfo);</span></span>
+<span id="L150"><span class="lineNum">     150</span>              :     } catch (e) {</span>
+<span id="L151"><span class="lineNum">     151</span> <span class="tlaUNC">           0 :       Logger.e('Failed to check memory pressure: $e');</span></span>
+<span id="L152"><span class="lineNum">     152</span>              :     }</span>
+<span id="L153"><span class="lineNum">     153</span>              :   }</span>
+<span id="L154"><span class="lineNum">     154</span>              :   </span>
+<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">           2 :   void _handleMemoryInfo(MemoryInfo memoryInfo) {</span></span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">           2 :     _lastMemoryInfo = memoryInfo;</span></span>
+<span id="L157"><span class="lineNum">     157</span>              :     </span>
+<span id="L158"><span class="lineNum">     158</span> <span class="tlaGNC">           4 :     final newLevel = _calculatePressureLevel(memoryInfo.usageRatio);</span></span>
+<span id="L159"><span class="lineNum">     159</span>              :     </span>
+<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">           4 :     if (newLevel != _currentLevel) {</span></span>
+<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">           1 :       final oldLevel = _currentLevel;</span></span>
+<span id="L162"><span class="lineNum">     162</span> <span class="tlaGNC">           1 :       _currentLevel = newLevel;</span></span>
+<span id="L163"><span class="lineNum">     163</span>              :       </span>
+<span id="L164"><span class="lineNum">     164</span> <span class="tlaGNC">           5 :       Logger.i('Memory pressure changed: $oldLevel → $newLevel (${(memoryInfo.usageRatio * 100).toStringAsFixed(1)}% usage)');</span></span>
+<span id="L165"><span class="lineNum">     165</span>              :       </span>
+<span id="L166"><span class="lineNum">     166</span>              :       // Notify via stream</span>
+<span id="L167"><span class="lineNum">     167</span> <span class="tlaGNC">           2 :       _pressureController.add(newLevel);</span></span>
+<span id="L168"><span class="lineNum">     168</span>              :       </span>
+<span id="L169"><span class="lineNum">     169</span>              :       // Notify listeners</span>
+<span id="L170"><span class="lineNum">     170</span> <span class="tlaGNC">           3 :       for (final listener in List.from(_listeners)) {</span></span>
+<span id="L171"><span class="lineNum">     171</span>              :         try {</span>
+<span id="L172"><span class="lineNum">     172</span> <span class="tlaGNC">           1 :           listener.onMemoryPressureChanged(newLevel, memoryInfo);</span></span>
+<span id="L173"><span class="lineNum">     173</span>              :         } catch (e) {</span>
+<span id="L174"><span class="lineNum">     174</span> <span class="tlaUNC">           0 :           Logger.e('Error notifying memory pressure listener: $e');</span></span>
+<span id="L175"><span class="lineNum">     175</span>              :         }</span>
+<span id="L176"><span class="lineNum">     176</span>              :       }</span>
+<span id="L177"><span class="lineNum">     177</span>              :     }</span>
+<span id="L178"><span class="lineNum">     178</span>              :   }</span>
+<span id="L179"><span class="lineNum">     179</span>              :   </span>
+<span id="L180"><span class="lineNum">     180</span> <span class="tlaGNC">           2 :   MemoryPressureLevel _calculatePressureLevel(double usageRatio) {</span></span>
+<span id="L181"><span class="lineNum">     181</span> <span class="tlaGNC">           4 :     if (usageRatio &gt;= _highThreshold) {</span></span>
+<span id="L182"><span class="lineNum">     182</span>              :       return MemoryPressureLevel.critical;</span>
+<span id="L183"><span class="lineNum">     183</span> <span class="tlaGNC">           4 :     } else if (usageRatio &gt;= _mediumThreshold) {</span></span>
+<span id="L184"><span class="lineNum">     184</span>              :       return MemoryPressureLevel.high;</span>
+<span id="L185"><span class="lineNum">     185</span> <span class="tlaGNC">           4 :     } else if (usageRatio &gt;= _lowThreshold) {</span></span>
+<span id="L186"><span class="lineNum">     186</span>              :       return MemoryPressureLevel.medium;</span>
+<span id="L187"><span class="lineNum">     187</span>              :     } else {</span>
+<span id="L188"><span class="lineNum">     188</span>              :       return MemoryPressureLevel.low;</span>
+<span id="L189"><span class="lineNum">     189</span>              :     }</span>
+<span id="L190"><span class="lineNum">     190</span>              :   }</span>
+<span id="L191"><span class="lineNum">     191</span>              :   </span>
+<span id="L192"><span class="lineNum">     192</span> <span class="tlaGNC">          16 :   void _startFallbackMonitoring() {</span></span>
+<span id="L193"><span class="lineNum">     193</span>              :     // Simple fallback that estimates based on app memory growth</span>
+<span id="L194"><span class="lineNum">     194</span> <span class="tlaGNC">          50 :     _fallbackTimer = Timer.periodic(_monitoringInterval, (_) {</span></span>
+<span id="L195"><span class="lineNum">     195</span>              :       try {</span>
+<span id="L196"><span class="lineNum">     196</span> <span class="tlaGNC">           2 :         final currentRss = _getCurrentRss() ?? 100 * 1024 * 1024;</span></span>
+<span id="L197"><span class="lineNum">     197</span>              :         </span>
+<span id="L198"><span class="lineNum">     198</span>              :         // Estimate pressure based on app memory usage</span>
+<span id="L199"><span class="lineNum">     199</span>              :         // This is very approximate but better than nothing</span>
+<span id="L200"><span class="lineNum">     200</span> <span class="tlaGNC">           2 :         final estimatedPressure = _estimatePressureFromAppMemory(currentRss);</span></span>
+<span id="L201"><span class="lineNum">     201</span>              :         </span>
+<span id="L202"><span class="lineNum">     202</span> <span class="tlaGNC">           2 :         final memoryInfo = MemoryInfo(</span></span>
+<span id="L203"><span class="lineNum">     203</span> <span class="tlaGNC">           6 :           totalMemory: 2 * 1024 * 1024 * 1024, // 2GB estimate</span></span>
+<span id="L204"><span class="lineNum">     204</span> <span class="tlaGNC">           4 :           availableMemory: 512 * 1024 * 1024, // 512MB estimate</span></span>
+<span id="L205"><span class="lineNum">     205</span> <span class="tlaGNC">           4 :           usedMemory: 1536 * 1024 * 1024, // 1.5GB estimate</span></span>
+<span id="L206"><span class="lineNum">     206</span>              :           usageRatio: estimatedPressure,</span>
+<span id="L207"><span class="lineNum">     207</span>              :           appMemoryUsage: currentRss,</span>
+<span id="L208"><span class="lineNum">     208</span> <span class="tlaGNC">           2 :           timestamp: DateTime.now(),</span></span>
+<span id="L209"><span class="lineNum">     209</span>              :         );</span>
+<span id="L210"><span class="lineNum">     210</span>              :         </span>
+<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">           2 :         _handleMemoryInfo(memoryInfo);</span></span>
+<span id="L212"><span class="lineNum">     212</span>              :       } catch (e) {</span>
+<span id="L213"><span class="lineNum">     213</span> <span class="tlaGNC">           2 :         Logger.e('Fallback memory monitoring failed: $e');</span></span>
+<span id="L214"><span class="lineNum">     214</span>              :       }</span>
+<span id="L215"><span class="lineNum">     215</span>              :     });</span>
+<span id="L216"><span class="lineNum">     216</span>              :   }</span>
+<span id="L217"><span class="lineNum">     217</span>              :   </span>
+<span id="L218"><span class="lineNum">     218</span>              :   /// Get current RSS (Resident Set Size) memory usage</span>
+<span id="L219"><span class="lineNum">     219</span>              :   /// This is a stub implementation as getCurrentRss() doesn't exist in dart:developer</span>
+<span id="L220"><span class="lineNum">     220</span> <span class="tlaGNC">           2 :   int? _getCurrentRss() {</span></span>
+<span id="L221"><span class="lineNum">     221</span>              :     try {</span>
+<span id="L222"><span class="lineNum">     222</span>              :       // Placeholder implementation - in a real app this would use platform channels</span>
+<span id="L223"><span class="lineNum">     223</span>              :       // to get actual RSS memory usage from native code</span>
+<span id="L224"><span class="lineNum">     224</span> <span class="tlaGNC">           4 :       return 100 * 1024 * 1024; // Return 100MB as default</span></span>
+<span id="L225"><span class="lineNum">     225</span>              :     } catch (e) {</span>
+<span id="L226"><span class="lineNum">     226</span> <span class="tlaUNC">           0 :       Logger.w('Failed to get RSS memory: $e');</span></span>
+<span id="L227"><span class="lineNum">     227</span>              :       return null;</span>
+<span id="L228"><span class="lineNum">     228</span>              :     }</span>
+<span id="L229"><span class="lineNum">     229</span>              :   }</span>
+<span id="L230"><span class="lineNum">     230</span>              :   </span>
+<span id="L231"><span class="lineNum">     231</span> <span class="tlaGNC">           2 :   double _estimatePressureFromAppMemory(int appMemoryBytes) {</span></span>
+<span id="L232"><span class="lineNum">     232</span>              :     // Simple heuristic: if app uses &gt;200MB, assume medium pressure</span>
+<span id="L233"><span class="lineNum">     233</span>              :     // &gt;400MB high, &gt;600MB critical</span>
+<span id="L234"><span class="lineNum">     234</span> <span class="tlaGNC">           4 :     final appMemoryMB = appMemoryBytes / 1024 / 1024;</span></span>
+<span id="L235"><span class="lineNum">     235</span>              :     </span>
+<span id="L236"><span class="lineNum">     236</span> <span class="tlaGNC">           2 :     if (appMemoryMB &gt; 600) return 0.96; // Critical</span></span>
+<span id="L237"><span class="lineNum">     237</span> <span class="tlaGNC">           2 :     if (appMemoryMB &gt; 400) return 0.86; // High</span></span>
+<span id="L238"><span class="lineNum">     238</span> <span class="tlaGNC">           2 :     if (appMemoryMB &gt; 200) return 0.71; // Medium</span></span>
+<span id="L239"><span class="lineNum">     239</span>              :     return 0.50; // Low</span>
+<span id="L240"><span class="lineNum">     240</span>              :   }</span>
+<span id="L241"><span class="lineNum">     241</span>              :   </span>
+<span id="L242"><span class="lineNum">     242</span>              :   /// Clean up resources</span>
+<span id="L243"><span class="lineNum">     243</span> <span class="tlaGNC">           1 :   void dispose() {</span></span>
+<span id="L244"><span class="lineNum">     244</span> <span class="tlaGNC">           1 :     stopMonitoring();</span></span>
+<span id="L245"><span class="lineNum">     245</span> <span class="tlaGNC">           2 :     _pressureController.close();</span></span>
+<span id="L246"><span class="lineNum">     246</span> <span class="tlaGNC">           2 :     _listeners.clear();</span></span>
+<span id="L247"><span class="lineNum">     247</span>              :   }</span>
+<span id="L248"><span class="lineNum">     248</span>              : }</span>
+<span id="L249"><span class="lineNum">     249</span>              : </span>
+<span id="L250"><span class="lineNum">     250</span>              : /// Listener interface for memory pressure changes</span>
+<span id="L251"><span class="lineNum">     251</span>              : abstract class MemoryPressureListener {</span>
+<span id="L252"><span class="lineNum">     252</span>              :   /// Called when memory pressure level changes</span>
+<span id="L253"><span class="lineNum">     253</span>              :   void onMemoryPressureChanged(MemoryPressureLevel level, MemoryInfo memoryInfo);</span>
+<span id="L254"><span class="lineNum">     254</span>              : }</span>
+<span id="L255"><span class="lineNum">     255</span>              : </span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3.1-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

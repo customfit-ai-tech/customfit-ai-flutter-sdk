@@ -1,0 +1,469 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - di/dependency_container.dart</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory di">di</a> - dependency_container.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryMed">89.0&nbsp;%</td>
+            <td class="headerCovTableEntry">154</td>
+            <td class="headerCovTableEntry">137</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-06-25 11:02:34</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : import 'dart:async';</span>
+<span id="L2"><span class="lineNum">       2</span>              : import '../config/core/cf_config.dart';</span>
+<span id="L3"><span class="lineNum">       3</span>              : import '../core/model/cf_user.dart';</span>
+<span id="L4"><span class="lineNum">       4</span>              : import './interfaces/http_client_interface.dart';</span>
+<span id="L5"><span class="lineNum">       5</span>              : import './interfaces/event_tracker_interface.dart';</span>
+<span id="L6"><span class="lineNum">       6</span>              : import './interfaces/summary_manager_interface.dart';</span>
+<span id="L7"><span class="lineNum">       7</span>              : import './interfaces/config_fetcher_interface.dart';</span>
+<span id="L8"><span class="lineNum">       8</span>              : import './interfaces/connection_manager_interface.dart';</span>
+<span id="L9"><span class="lineNum">       9</span>              : import './interfaces/session_manager_interface.dart';</span>
+<span id="L10"><span class="lineNum">      10</span>              : import './interfaces/background_monitor_interface.dart';</span>
+<span id="L11"><span class="lineNum">      11</span>              : import '../client/managers/config_manager.dart';</span>
+<span id="L12"><span class="lineNum">      12</span>              : import '../client/managers/user_manager.dart';</span>
+<span id="L13"><span class="lineNum">      13</span>              : import '../client/managers/environment_manager.dart';</span>
+<span id="L14"><span class="lineNum">      14</span>              : import '../client/managers/listener_manager.dart';</span>
+<span id="L15"><span class="lineNum">      15</span>              : import './default_dependency_factory.dart';</span>
+<span id="L16"><span class="lineNum">      16</span>              : import '../logging/logger.dart';</span>
+<span id="L17"><span class="lineNum">      17</span>              : </span>
+<span id="L18"><span class="lineNum">      18</span>              : // Concrete types for backward compatibility</span>
+<span id="L19"><span class="lineNum">      19</span>              : import '../analytics/event/event_tracker.dart';</span>
+<span id="L20"><span class="lineNum">      20</span>              : import '../analytics/summary/summary_manager.dart';</span>
+<span id="L21"><span class="lineNum">      21</span>              : import '../network/config_fetcher.dart';</span>
+<span id="L22"><span class="lineNum">      22</span>              : import '../network/connection/connection_manager_impl.dart';</span>
+<span id="L23"><span class="lineNum">      23</span>              : import '../platform/default_background_state_monitor.dart';</span>
+<span id="L24"><span class="lineNum">      24</span>              : </span>
+<span id="L25"><span class="lineNum">      25</span>              : /// Abstract factory interface for creating SDK dependencies</span>
+<span id="L26"><span class="lineNum">      26</span>              : /// Used for dependency injection in tests</span>
+<span id="L27"><span class="lineNum">      27</span>              : abstract class DependencyFactory {</span>
+<span id="L28"><span class="lineNum">      28</span>              :   HttpClientInterface createHttpClient(CFConfig config);</span>
+<span id="L29"><span class="lineNum">      29</span>              :   ConnectionManagerInterface createConnectionManager(CFConfig config);</span>
+<span id="L30"><span class="lineNum">      30</span>              :   BackgroundMonitorInterface createBackgroundMonitor();</span>
+<span id="L31"><span class="lineNum">      31</span>              :   ConfigFetcherInterface createConfigFetcher(</span>
+<span id="L32"><span class="lineNum">      32</span>              :     HttpClientInterface httpClient,</span>
+<span id="L33"><span class="lineNum">      33</span>              :     CFConfig config,</span>
+<span id="L34"><span class="lineNum">      34</span>              :     CFUser user,</span>
+<span id="L35"><span class="lineNum">      35</span>              :   );</span>
+<span id="L36"><span class="lineNum">      36</span>              :   SummaryManagerInterface createSummaryManager(</span>
+<span id="L37"><span class="lineNum">      37</span>              :     String sessionId,</span>
+<span id="L38"><span class="lineNum">      38</span>              :     HttpClientInterface httpClient,</span>
+<span id="L39"><span class="lineNum">      39</span>              :     CFUser user,</span>
+<span id="L40"><span class="lineNum">      40</span>              :     CFConfig config,</span>
+<span id="L41"><span class="lineNum">      41</span>              :   );</span>
+<span id="L42"><span class="lineNum">      42</span>              :   EventTrackerInterface createEventTracker(</span>
+<span id="L43"><span class="lineNum">      43</span>              :     HttpClientInterface httpClient,</span>
+<span id="L44"><span class="lineNum">      44</span>              :     ConnectionManagerInterface connectionManager,</span>
+<span id="L45"><span class="lineNum">      45</span>              :     CFUser user,</span>
+<span id="L46"><span class="lineNum">      46</span>              :     String sessionId,</span>
+<span id="L47"><span class="lineNum">      47</span>              :     CFConfig config,</span>
+<span id="L48"><span class="lineNum">      48</span>              :     SummaryManagerInterface summaryManager,</span>
+<span id="L49"><span class="lineNum">      49</span>              :   );</span>
+<span id="L50"><span class="lineNum">      50</span>              :   SessionManagerInterface? createSessionManager(CFConfig config);</span>
+<span id="L51"><span class="lineNum">      51</span>              :   ConfigManager createConfigManager(</span>
+<span id="L52"><span class="lineNum">      52</span>              :     CFConfig config,</span>
+<span id="L53"><span class="lineNum">      53</span>              :     ConfigFetcherInterface configFetcher,</span>
+<span id="L54"><span class="lineNum">      54</span>              :     ConnectionManagerInterface connectionManager,</span>
+<span id="L55"><span class="lineNum">      55</span>              :     SummaryManagerInterface summaryManager,</span>
+<span id="L56"><span class="lineNum">      56</span>              :   );</span>
+<span id="L57"><span class="lineNum">      57</span>              :   UserManager createUserManager(CFUser user);</span>
+<span id="L58"><span class="lineNum">      58</span>              :   EnvironmentManager createEnvironmentManager(</span>
+<span id="L59"><span class="lineNum">      59</span>              :     BackgroundMonitorInterface backgroundMonitor,</span>
+<span id="L60"><span class="lineNum">      60</span>              :     UserManager userManager,</span>
+<span id="L61"><span class="lineNum">      61</span>              :   );</span>
+<span id="L62"><span class="lineNum">      62</span>              :   ListenerManager createListenerManager();</span>
+<span id="L63"><span class="lineNum">      63</span>              : }</span>
+<span id="L64"><span class="lineNum">      64</span>              : </span>
+<span id="L65"><span class="lineNum">      65</span>              : /// Improved dependency injection container</span>
+<span id="L66"><span class="lineNum">      66</span>              : /// Provides improved dependency injection with better patterns</span>
+<span id="L67"><span class="lineNum">      67</span>              : class DependencyContainer {</span>
+<span id="L68"><span class="lineNum">      68</span> <span class="tlaGNC">          39 :   static final _instance = DependencyContainer._();</span></span>
+<span id="L69"><span class="lineNum">      69</span> <span class="tlaGNC">          26 :   static DependencyContainer get instance =&gt; _instance;</span></span>
+<span id="L70"><span class="lineNum">      70</span>              : </span>
+<span id="L71"><span class="lineNum">      71</span>              :   final _services = &lt;Type, dynamic&gt;{};</span>
+<span id="L72"><span class="lineNum">      72</span>              :   final _factories = &lt;Type, dynamic Function()&gt;{};</span>
+<span id="L73"><span class="lineNum">      73</span>              :   final _singletonFactories = &lt;Type, Future&lt;dynamic&gt; Function()&gt;{};</span>
+<span id="L74"><span class="lineNum">      74</span>              :   final _initializingFutures = &lt;Type, Completer&lt;dynamic&gt;&gt;{};</span>
+<span id="L75"><span class="lineNum">      75</span>              : </span>
+<span id="L76"><span class="lineNum">      76</span>              :   DependencyFactory? _factory;</span>
+<span id="L77"><span class="lineNum">      77</span>              :   CFConfig? _config;</span>
+<span id="L78"><span class="lineNum">      78</span>              :   CFUser? _user;</span>
+<span id="L79"><span class="lineNum">      79</span>              :   String? _sessionId;</span>
+<span id="L80"><span class="lineNum">      80</span>              :   bool _initialized = false;</span>
+<span id="L81"><span class="lineNum">      81</span>              : </span>
+<span id="L82"><span class="lineNum">      82</span> <span class="tlaGNC">          13 :   DependencyContainer._();</span></span>
+<span id="L83"><span class="lineNum">      83</span>              : </span>
+<span id="L84"><span class="lineNum">      84</span>              :   /// Initialize the container with SDK configuration</span>
+<span id="L85"><span class="lineNum">      85</span> <span class="tlaGNC">          13 :   void initialize({</span></span>
+<span id="L86"><span class="lineNum">      86</span>              :     required CFConfig config,</span>
+<span id="L87"><span class="lineNum">      87</span>              :     required CFUser user,</span>
+<span id="L88"><span class="lineNum">      88</span>              :     required String sessionId,</span>
+<span id="L89"><span class="lineNum">      89</span>              :     DependencyFactory? factory,</span>
+<span id="L90"><span class="lineNum">      90</span>              :   }) {</span>
+<span id="L91"><span class="lineNum">      91</span> <span class="tlaGNC">          13 :     if (_initialized) {</span></span>
+<span id="L92"><span class="lineNum">      92</span> <span class="tlaGNC">           5 :       Logger.w('DependencyContainer: Already initialized, reinitializing');</span></span>
+<span id="L93"><span class="lineNum">      93</span> <span class="tlaGNC">           5 :       reset();</span></span>
+<span id="L94"><span class="lineNum">      94</span>              :     }</span>
+<span id="L95"><span class="lineNum">      95</span>              : </span>
+<span id="L96"><span class="lineNum">      96</span> <span class="tlaGNC">          13 :     _config = config;</span></span>
+<span id="L97"><span class="lineNum">      97</span> <span class="tlaGNC">          13 :     _user = user;</span></span>
+<span id="L98"><span class="lineNum">      98</span> <span class="tlaGNC">          13 :     _sessionId = sessionId;</span></span>
+<span id="L99"><span class="lineNum">      99</span> <span class="tlaGNC">          23 :     _factory = factory ?? DefaultDependencyFactory();</span></span>
+<span id="L100"><span class="lineNum">     100</span> <span class="tlaGNC">          13 :     _initialized = true;</span></span>
+<span id="L101"><span class="lineNum">     101</span>              : </span>
+<span id="L102"><span class="lineNum">     102</span> <span class="tlaGNC">          13 :     _registerServices();</span></span>
+<span id="L103"><span class="lineNum">     103</span> <span class="tlaGNC">          13 :     Logger.i(</span></span>
+<span id="L104"><span class="lineNum">     104</span> <span class="tlaGNC">          39 :       'DependencyContainer: Initialized with ${_factories.length} services',</span></span>
+<span id="L105"><span class="lineNum">     105</span>              :     );</span>
+<span id="L106"><span class="lineNum">     106</span>              :   }</span>
+<span id="L107"><span class="lineNum">     107</span>              : </span>
+<span id="L108"><span class="lineNum">     108</span>              :   /// Update session ID and recreate session-dependent services</span>
+<span id="L109"><span class="lineNum">     109</span> <span class="tlaGNC">           1 :   void updateSessionId(String newSessionId) {</span></span>
+<span id="L110"><span class="lineNum">     110</span> <span class="tlaGNC">           1 :     if (!_initialized) {</span></span>
+<span id="L111"><span class="lineNum">     111</span> <span class="tlaUNC">           0 :       Logger.w(</span></span>
+<span id="L112"><span class="lineNum">     112</span>              :         'DependencyContainer: Not initialized, cannot update session ID',</span>
+<span id="L113"><span class="lineNum">     113</span>              :       );</span>
+<span id="L114"><span class="lineNum">     114</span>              :       return;</span>
+<span id="L115"><span class="lineNum">     115</span>              :     }</span>
+<span id="L116"><span class="lineNum">     116</span>              : </span>
+<span id="L117"><span class="lineNum">     117</span> <span class="tlaGNC">           1 :     _sessionId = newSessionId;</span></span>
+<span id="L118"><span class="lineNum">     118</span> <span class="tlaGNC">           1 :     Logger.d('DependencyContainer: Updated session ID');</span></span>
+<span id="L119"><span class="lineNum">     119</span>              : </span>
+<span id="L120"><span class="lineNum">     120</span>              :     // Clear services that depend on session ID</span>
+<span id="L121"><span class="lineNum">     121</span> <span class="tlaGNC">           1 :     final sessionDependentTypes = &lt;Type&gt;[</span></span>
+<span id="L122"><span class="lineNum">     122</span>              :       EventTrackerInterface,</span>
+<span id="L123"><span class="lineNum">     123</span>              :       SummaryManagerInterface,</span>
+<span id="L124"><span class="lineNum">     124</span>              :     ];</span>
+<span id="L125"><span class="lineNum">     125</span>              : </span>
+<span id="L126"><span class="lineNum">     126</span> <span class="tlaGNC">           2 :     for (final type in sessionDependentTypes) {</span></span>
+<span id="L127"><span class="lineNum">     127</span> <span class="tlaGNC">           2 :       if (_services.containsKey(type)) {</span></span>
+<span id="L128"><span class="lineNum">     128</span> <span class="tlaUNC">           0 :         _services.remove(type);</span></span>
+<span id="L129"><span class="lineNum">     129</span> <span class="tlaUNC">           0 :         Logger.d(</span></span>
+<span id="L130"><span class="lineNum">     130</span> <span class="tlaUNC">           0 :           'DependencyContainer: Cleared cached instance of $type for session update',</span></span>
+<span id="L131"><span class="lineNum">     131</span>              :         );</span>
+<span id="L132"><span class="lineNum">     132</span>              :       }</span>
+<span id="L133"><span class="lineNum">     133</span>              :     }</span>
+<span id="L134"><span class="lineNum">     134</span>              :   }</span>
+<span id="L135"><span class="lineNum">     135</span>              : </span>
+<span id="L136"><span class="lineNum">     136</span>              :   /// Register all services using the factory</span>
+<span id="L137"><span class="lineNum">     137</span> <span class="tlaGNC">          13 :   void _registerServices() {</span></span>
+<span id="L138"><span class="lineNum">     138</span> <span class="tlaGNC">          13 :     if (_factory == null ||</span></span>
+<span id="L139"><span class="lineNum">     139</span> <span class="tlaGNC">          13 :         _config == null ||</span></span>
+<span id="L140"><span class="lineNum">     140</span> <span class="tlaGNC">          13 :         _user == null ||</span></span>
+<span id="L141"><span class="lineNum">     141</span> <span class="tlaGNC">          13 :         _sessionId == null) {</span></span>
+<span id="L142"><span class="lineNum">     142</span> <span class="tlaUNC">           0 :       throw StateError('DependencyContainer not properly initialized');</span></span>
+<span id="L143"><span class="lineNum">     143</span>              :     }</span>
+<span id="L144"><span class="lineNum">     144</span>              : </span>
+<span id="L145"><span class="lineNum">     145</span> <span class="tlaGNC">          13 :     final factory = _factory!;</span></span>
+<span id="L146"><span class="lineNum">     146</span> <span class="tlaGNC">          13 :     final config = _config!;</span></span>
+<span id="L147"><span class="lineNum">     147</span> <span class="tlaGNC">          13 :     final user = _user!;</span></span>
+<span id="L148"><span class="lineNum">     148</span> <span class="tlaGNC">          13 :     final sessionId = _sessionId!;</span></span>
+<span id="L149"><span class="lineNum">     149</span>              : </span>
+<span id="L150"><span class="lineNum">     150</span>              :     // Register core services</span>
+<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;HttpClientInterface&gt;(</span></span>
+<span id="L152"><span class="lineNum">     152</span> <span class="tlaGNC">          26 :       () =&gt; factory.createHttpClient(config),</span></span>
+<span id="L153"><span class="lineNum">     153</span>              :     );</span>
+<span id="L154"><span class="lineNum">     154</span>              : </span>
+<span id="L155"><span class="lineNum">     155</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;ConnectionManagerInterface&gt;(</span></span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">          26 :       () =&gt; factory.createConnectionManager(config),</span></span>
+<span id="L157"><span class="lineNum">     157</span>              :     );</span>
+<span id="L158"><span class="lineNum">     158</span>              : </span>
+<span id="L159"><span class="lineNum">     159</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;BackgroundMonitorInterface&gt;(</span></span>
+<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">          24 :       () =&gt; factory.createBackgroundMonitor(),</span></span>
+<span id="L161"><span class="lineNum">     161</span>              :     );</span>
+<span id="L162"><span class="lineNum">     162</span>              : </span>
+<span id="L163"><span class="lineNum">     163</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;ConfigFetcherInterface&gt;(</span></span>
+<span id="L164"><span class="lineNum">     164</span> <span class="tlaGNC">          12 :       () =&gt;</span></span>
+<span id="L165"><span class="lineNum">     165</span> <span class="tlaGNC">          24 :           factory.createConfigFetcher(get&lt;HttpClientInterface&gt;(), config, user),</span></span>
+<span id="L166"><span class="lineNum">     166</span>              :     );</span>
+<span id="L167"><span class="lineNum">     167</span>              : </span>
+<span id="L168"><span class="lineNum">     168</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;SummaryManagerInterface&gt;(</span></span>
+<span id="L169"><span class="lineNum">     169</span> <span class="tlaGNC">          26 :       () =&gt; factory.createSummaryManager(</span></span>
+<span id="L170"><span class="lineNum">     170</span>              :         sessionId,</span>
+<span id="L171"><span class="lineNum">     171</span> <span class="tlaGNC">          13 :         get&lt;HttpClientInterface&gt;(),</span></span>
+<span id="L172"><span class="lineNum">     172</span>              :         user,</span>
+<span id="L173"><span class="lineNum">     173</span>              :         config,</span>
+<span id="L174"><span class="lineNum">     174</span>              :       ),</span>
+<span id="L175"><span class="lineNum">     175</span>              :     );</span>
+<span id="L176"><span class="lineNum">     176</span>              : </span>
+<span id="L177"><span class="lineNum">     177</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;EventTrackerInterface&gt;(</span></span>
+<span id="L178"><span class="lineNum">     178</span> <span class="tlaGNC">          26 :       () =&gt; factory.createEventTracker(</span></span>
+<span id="L179"><span class="lineNum">     179</span> <span class="tlaGNC">          13 :         get&lt;HttpClientInterface&gt;(),</span></span>
+<span id="L180"><span class="lineNum">     180</span> <span class="tlaGNC">          13 :         get&lt;ConnectionManagerInterface&gt;(),</span></span>
+<span id="L181"><span class="lineNum">     181</span>              :         user,</span>
+<span id="L182"><span class="lineNum">     182</span>              :         sessionId,</span>
+<span id="L183"><span class="lineNum">     183</span>              :         config,</span>
+<span id="L184"><span class="lineNum">     184</span> <span class="tlaGNC">          13 :         get&lt;SummaryManagerInterface&gt;(),</span></span>
+<span id="L185"><span class="lineNum">     185</span>              :       ),</span>
+<span id="L186"><span class="lineNum">     186</span>              :     );</span>
+<span id="L187"><span class="lineNum">     187</span>              : </span>
+<span id="L188"><span class="lineNum">     188</span>              :     // Register managers</span>
+<span id="L189"><span class="lineNum">     189</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;ConfigManager&gt;(</span></span>
+<span id="L190"><span class="lineNum">     190</span> <span class="tlaGNC">          24 :       () =&gt; factory.createConfigManager(</span></span>
+<span id="L191"><span class="lineNum">     191</span>              :         config,</span>
+<span id="L192"><span class="lineNum">     192</span> <span class="tlaGNC">          12 :         get&lt;ConfigFetcherInterface&gt;(),</span></span>
+<span id="L193"><span class="lineNum">     193</span> <span class="tlaGNC">          12 :         get&lt;ConnectionManagerInterface&gt;(),</span></span>
+<span id="L194"><span class="lineNum">     194</span> <span class="tlaGNC">          12 :         get&lt;SummaryManagerInterface&gt;(),</span></span>
+<span id="L195"><span class="lineNum">     195</span>              :       ),</span>
+<span id="L196"><span class="lineNum">     196</span>              :     );</span>
+<span id="L197"><span class="lineNum">     197</span>              : </span>
+<span id="L198"><span class="lineNum">     198</span> <span class="tlaGNC">          37 :     registerLazySingleton&lt;UserManager&gt;(() =&gt; factory.createUserManager(user));</span></span>
+<span id="L199"><span class="lineNum">     199</span>              : </span>
+<span id="L200"><span class="lineNum">     200</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;EnvironmentManager&gt;(</span></span>
+<span id="L201"><span class="lineNum">     201</span> <span class="tlaGNC">           2 :       () =&gt; factory.createEnvironmentManager(</span></span>
+<span id="L202"><span class="lineNum">     202</span> <span class="tlaGNC">           1 :         get&lt;BackgroundMonitorInterface&gt;(),</span></span>
+<span id="L203"><span class="lineNum">     203</span> <span class="tlaGNC">           1 :         get&lt;UserManager&gt;(),</span></span>
+<span id="L204"><span class="lineNum">     204</span>              :       ),</span>
+<span id="L205"><span class="lineNum">     205</span>              :     );</span>
+<span id="L206"><span class="lineNum">     206</span>              : </span>
+<span id="L207"><span class="lineNum">     207</span> <span class="tlaGNC">          13 :     registerLazySingleton&lt;ListenerManager&gt;(</span></span>
+<span id="L208"><span class="lineNum">     208</span> <span class="tlaGNC">          20 :       () =&gt; factory.createListenerManager(),</span></span>
+<span id="L209"><span class="lineNum">     209</span>              :     );</span>
+<span id="L210"><span class="lineNum">     210</span>              : </span>
+<span id="L211"><span class="lineNum">     211</span>              :     // Register concrete types for backward compatibility - only when using default factory</span>
+<span id="L212"><span class="lineNum">     212</span> <span class="tlaGNC">          26 :     if (_factory is DefaultDependencyFactory) {</span></span>
+<span id="L213"><span class="lineNum">     213</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;SummaryManager&gt;(</span></span>
+<span id="L214"><span class="lineNum">     214</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;SummaryManagerInterface&gt;() as SummaryManager,</span></span>
+<span id="L215"><span class="lineNum">     215</span>              :       );</span>
+<span id="L216"><span class="lineNum">     216</span>              : </span>
+<span id="L217"><span class="lineNum">     217</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;EventTracker&gt;(</span></span>
+<span id="L218"><span class="lineNum">     218</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;EventTrackerInterface&gt;() as EventTracker,</span></span>
+<span id="L219"><span class="lineNum">     219</span>              :       );</span>
+<span id="L220"><span class="lineNum">     220</span>              : </span>
+<span id="L221"><span class="lineNum">     221</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;ConfigFetcher&gt;(</span></span>
+<span id="L222"><span class="lineNum">     222</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;ConfigFetcherInterface&gt;() as ConfigFetcher,</span></span>
+<span id="L223"><span class="lineNum">     223</span>              :       );</span>
+<span id="L224"><span class="lineNum">     224</span>              : </span>
+<span id="L225"><span class="lineNum">     225</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;ConfigManagerImpl&gt;(</span></span>
+<span id="L226"><span class="lineNum">     226</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;ConfigManager&gt;() as ConfigManagerImpl,</span></span>
+<span id="L227"><span class="lineNum">     227</span>              :       );</span>
+<span id="L228"><span class="lineNum">     228</span>              : </span>
+<span id="L229"><span class="lineNum">     229</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;UserManagerImpl&gt;(</span></span>
+<span id="L230"><span class="lineNum">     230</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;UserManager&gt;() as UserManagerImpl,</span></span>
+<span id="L231"><span class="lineNum">     231</span>              :       );</span>
+<span id="L232"><span class="lineNum">     232</span>              : </span>
+<span id="L233"><span class="lineNum">     233</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;EnvironmentManagerImpl&gt;(</span></span>
+<span id="L234"><span class="lineNum">     234</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;EnvironmentManager&gt;() as EnvironmentManagerImpl,</span></span>
+<span id="L235"><span class="lineNum">     235</span>              :       );</span>
+<span id="L236"><span class="lineNum">     236</span>              : </span>
+<span id="L237"><span class="lineNum">     237</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;ListenerManagerImpl&gt;(</span></span>
+<span id="L238"><span class="lineNum">     238</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;ListenerManager&gt;() as ListenerManagerImpl,</span></span>
+<span id="L239"><span class="lineNum">     239</span>              :       );</span>
+<span id="L240"><span class="lineNum">     240</span>              : </span>
+<span id="L241"><span class="lineNum">     241</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;ConnectionManagerImpl&gt;(</span></span>
+<span id="L242"><span class="lineNum">     242</span> <span class="tlaUNC">           0 :         () =&gt; get&lt;ConnectionManagerInterface&gt;() as ConnectionManagerImpl,</span></span>
+<span id="L243"><span class="lineNum">     243</span>              :       );</span>
+<span id="L244"><span class="lineNum">     244</span>              : </span>
+<span id="L245"><span class="lineNum">     245</span> <span class="tlaGNC">          10 :       registerLazySingleton&lt;DefaultBackgroundStateMonitor&gt;(</span></span>
+<span id="L246"><span class="lineNum">     246</span> <span class="tlaUNC">           0 :         () =&gt;</span></span>
+<span id="L247"><span class="lineNum">     247</span> <span class="tlaUNC">           0 :             get&lt;BackgroundMonitorInterface&gt;() as DefaultBackgroundStateMonitor,</span></span>
+<span id="L248"><span class="lineNum">     248</span>              :       );</span>
+<span id="L249"><span class="lineNum">     249</span>              :     }</span>
+<span id="L250"><span class="lineNum">     250</span>              :   }</span>
+<span id="L251"><span class="lineNum">     251</span>              : </span>
+<span id="L252"><span class="lineNum">     252</span>              :   /// Shutdown all services</span>
+<span id="L253"><span class="lineNum">     253</span> <span class="tlaGNC">          13 :   Future&lt;void&gt; shutdown() async {</span></span>
+<span id="L254"><span class="lineNum">     254</span> <span class="tlaGNC">          13 :     if (!_initialized) {</span></span>
+<span id="L255"><span class="lineNum">     255</span> <span class="tlaGNC">           1 :       Logger.d('DependencyContainer: Not initialized, nothing to shutdown');</span></span>
+<span id="L256"><span class="lineNum">     256</span>              :       return;</span>
+<span id="L257"><span class="lineNum">     257</span>              :     }</span>
+<span id="L258"><span class="lineNum">     258</span>              : </span>
+<span id="L259"><span class="lineNum">     259</span> <span class="tlaGNC">          13 :     Logger.i('DependencyContainer: Shutting down');</span></span>
+<span id="L260"><span class="lineNum">     260</span>              : </span>
+<span id="L261"><span class="lineNum">     261</span>              :     // Shutdown services that have shutdown methods</span>
+<span id="L262"><span class="lineNum">     262</span> <span class="tlaGNC">          13 :     final futures = &lt;Future&lt;void&gt;&gt;[];</span></span>
+<span id="L263"><span class="lineNum">     263</span>              : </span>
+<span id="L264"><span class="lineNum">     264</span> <span class="tlaGNC">          39 :     for (final service in _services.values) {</span></span>
+<span id="L265"><span class="lineNum">     265</span>              :       try {</span>
+<span id="L266"><span class="lineNum">     266</span> <span class="tlaGNC">          13 :         if (service is EventTrackerInterface) {</span></span>
+<span id="L267"><span class="lineNum">     267</span> <span class="tlaGNC">          13 :           service.shutdown();</span></span>
+<span id="L268"><span class="lineNum">     268</span> <span class="tlaGNC">          13 :         } else if (service is SummaryManagerInterface) {</span></span>
+<span id="L269"><span class="lineNum">     269</span> <span class="tlaGNC">          13 :           service.shutdown();</span></span>
+<span id="L270"><span class="lineNum">     270</span> <span class="tlaGNC">          13 :         } else if (service is ConnectionManagerInterface) {</span></span>
+<span id="L271"><span class="lineNum">     271</span> <span class="tlaGNC">          13 :           service.shutdown();</span></span>
+<span id="L272"><span class="lineNum">     272</span> <span class="tlaGNC">          13 :         } else if (service is BackgroundMonitorInterface) {</span></span>
+<span id="L273"><span class="lineNum">     273</span> <span class="tlaGNC">          12 :           service.shutdown();</span></span>
+<span id="L274"><span class="lineNum">     274</span> <span class="tlaGNC">          13 :         } else if (service is ConfigManager) {</span></span>
+<span id="L275"><span class="lineNum">     275</span> <span class="tlaGNC">          12 :           service.shutdown();</span></span>
+<span id="L276"><span class="lineNum">     276</span> <span class="tlaGNC">          13 :         } else if (service is EnvironmentManager) {</span></span>
+<span id="L277"><span class="lineNum">     277</span> <span class="tlaGNC">           1 :           service.shutdown();</span></span>
+<span id="L278"><span class="lineNum">     278</span>              :         }</span>
+<span id="L279"><span class="lineNum">     279</span>              :       } catch (e) {</span>
+<span id="L280"><span class="lineNum">     280</span> <span class="tlaGNC">           1 :         Logger.e(</span></span>
+<span id="L281"><span class="lineNum">     281</span> <span class="tlaGNC">           2 :           'DependencyContainer: Error shutting down service ${service.runtimeType}: $e',</span></span>
+<span id="L282"><span class="lineNum">     282</span>              :         );</span>
+<span id="L283"><span class="lineNum">     283</span>              :       }</span>
+<span id="L284"><span class="lineNum">     284</span>              :     }</span>
+<span id="L285"><span class="lineNum">     285</span>              : </span>
+<span id="L286"><span class="lineNum">     286</span>              :     // Wait for any async shutdowns</span>
+<span id="L287"><span class="lineNum">     287</span> <span class="tlaGNC">          13 :     if (futures.isNotEmpty) {</span></span>
+<span id="L288"><span class="lineNum">     288</span> <span class="tlaUNC">           0 :       await Future.wait(futures);</span></span>
+<span id="L289"><span class="lineNum">     289</span>              :     }</span>
+<span id="L290"><span class="lineNum">     290</span>              : </span>
+<span id="L291"><span class="lineNum">     291</span> <span class="tlaGNC">          13 :     reset();</span></span>
+<span id="L292"><span class="lineNum">     292</span> <span class="tlaGNC">          13 :     _initialized = false;</span></span>
+<span id="L293"><span class="lineNum">     293</span> <span class="tlaGNC">          13 :     Logger.i('DependencyContainer: Shutdown complete');</span></span>
+<span id="L294"><span class="lineNum">     294</span>              :   }</span>
+<span id="L295"><span class="lineNum">     295</span>              : </span>
+<span id="L296"><span class="lineNum">     296</span>              :   /// Register a singleton instance</span>
+<span id="L297"><span class="lineNum">     297</span> <span class="tlaGNC">           1 :   void registerSingleton&lt;T&gt;(T instance) {</span></span>
+<span id="L298"><span class="lineNum">     298</span> <span class="tlaGNC">           2 :     _services[T] = instance;</span></span>
+<span id="L299"><span class="lineNum">     299</span>              :   }</span>
+<span id="L300"><span class="lineNum">     300</span>              : </span>
+<span id="L301"><span class="lineNum">     301</span>              :   /// Register a lazy singleton (created on first access)</span>
+<span id="L302"><span class="lineNum">     302</span> <span class="tlaGNC">          13 :   void registerLazySingleton&lt;T&gt;(T Function() factory) {</span></span>
+<span id="L303"><span class="lineNum">     303</span> <span class="tlaGNC">          26 :     _factories[T] = factory;</span></span>
+<span id="L304"><span class="lineNum">     304</span>              :   }</span>
+<span id="L305"><span class="lineNum">     305</span>              : </span>
+<span id="L306"><span class="lineNum">     306</span>              :   /// Register an async singleton</span>
+<span id="L307"><span class="lineNum">     307</span> <span class="tlaGNC">           1 :   void registerAsyncSingleton&lt;T&gt;(Future&lt;T&gt; Function() factory) {</span></span>
+<span id="L308"><span class="lineNum">     308</span> <span class="tlaGNC">           2 :     _singletonFactories[T] = factory;</span></span>
+<span id="L309"><span class="lineNum">     309</span>              :   }</span>
+<span id="L310"><span class="lineNum">     310</span>              : </span>
+<span id="L311"><span class="lineNum">     311</span>              :   /// Get a registered service</span>
+<span id="L312"><span class="lineNum">     312</span> <span class="tlaGNC">          13 :   T get&lt;T&gt;() {</span></span>
+<span id="L313"><span class="lineNum">     313</span>              :     // Check if already instantiated</span>
+<span id="L314"><span class="lineNum">     314</span> <span class="tlaGNC">          26 :     if (_services.containsKey(T)) {</span></span>
+<span id="L315"><span class="lineNum">     315</span> <span class="tlaGNC">          26 :       return _services[T] as T;</span></span>
+<span id="L316"><span class="lineNum">     316</span>              :     }</span>
+<span id="L317"><span class="lineNum">     317</span>              : </span>
+<span id="L318"><span class="lineNum">     318</span>              :     // Check for lazy factory</span>
+<span id="L319"><span class="lineNum">     319</span> <span class="tlaGNC">          26 :     if (_factories.containsKey(T)) {</span></span>
+<span id="L320"><span class="lineNum">     320</span> <span class="tlaGNC">          39 :       final instance = _factories[T]!() as T;</span></span>
+<span id="L321"><span class="lineNum">     321</span> <span class="tlaGNC">          26 :       _services[T] = instance;</span></span>
+<span id="L322"><span class="lineNum">     322</span> <span class="tlaGNC">          26 :       _factories.remove(T);</span></span>
+<span id="L323"><span class="lineNum">     323</span>              :       return instance;</span>
+<span id="L324"><span class="lineNum">     324</span>              :     }</span>
+<span id="L325"><span class="lineNum">     325</span>              : </span>
+<span id="L326"><span class="lineNum">     326</span> <span class="tlaGNC">           4 :     throw StateError('Service $T not registered');</span></span>
+<span id="L327"><span class="lineNum">     327</span>              :   }</span>
+<span id="L328"><span class="lineNum">     328</span>              : </span>
+<span id="L329"><span class="lineNum">     329</span>              :   /// Get an async service</span>
+<span id="L330"><span class="lineNum">     330</span> <span class="tlaGNC">           1 :   Future&lt;T&gt; getAsync&lt;T&gt;() async {</span></span>
+<span id="L331"><span class="lineNum">     331</span>              :     // Check if already instantiated</span>
+<span id="L332"><span class="lineNum">     332</span> <span class="tlaGNC">           2 :     if (_services.containsKey(T)) {</span></span>
+<span id="L333"><span class="lineNum">     333</span> <span class="tlaGNC">           2 :       return _services[T] as T;</span></span>
+<span id="L334"><span class="lineNum">     334</span>              :     }</span>
+<span id="L335"><span class="lineNum">     335</span>              : </span>
+<span id="L336"><span class="lineNum">     336</span>              :     // Check if already initializing</span>
+<span id="L337"><span class="lineNum">     337</span> <span class="tlaGNC">           2 :     if (_initializingFutures.containsKey(T)) {</span></span>
+<span id="L338"><span class="lineNum">     338</span>              :       try {</span>
+<span id="L339"><span class="lineNum">     339</span> <span class="tlaGNC">           3 :         return await _initializingFutures[T]!.future as T;</span></span>
+<span id="L340"><span class="lineNum">     340</span>              :       } catch (e) {</span>
+<span id="L341"><span class="lineNum">     341</span>              :         // If the initialization failed, clean up and allow retry</span>
+<span id="L342"><span class="lineNum">     342</span> <span class="tlaUNC">           0 :         _initializingFutures.remove(T);</span></span>
+<span id="L343"><span class="lineNum">     343</span>              :         rethrow;</span>
+<span id="L344"><span class="lineNum">     344</span>              :       }</span>
+<span id="L345"><span class="lineNum">     345</span>              :     }</span>
+<span id="L346"><span class="lineNum">     346</span>              : </span>
+<span id="L347"><span class="lineNum">     347</span>              :     // Check for async factory</span>
+<span id="L348"><span class="lineNum">     348</span> <span class="tlaGNC">           2 :     if (_singletonFactories.containsKey(T)) {</span></span>
+<span id="L349"><span class="lineNum">     349</span> <span class="tlaGNC">           1 :       final completer = Completer&lt;T&gt;();</span></span>
+<span id="L350"><span class="lineNum">     350</span> <span class="tlaGNC">           2 :       _initializingFutures[T] = completer;</span></span>
+<span id="L351"><span class="lineNum">     351</span>              : </span>
+<span id="L352"><span class="lineNum">     352</span>              :       try {</span>
+<span id="L353"><span class="lineNum">     353</span> <span class="tlaGNC">           3 :         final instance = await _singletonFactories[T]!() as T;</span></span>
+<span id="L354"><span class="lineNum">     354</span> <span class="tlaGNC">           2 :         _services[T] = instance;</span></span>
+<span id="L355"><span class="lineNum">     355</span> <span class="tlaGNC">           2 :         _singletonFactories.remove(T);</span></span>
+<span id="L356"><span class="lineNum">     356</span> <span class="tlaGNC">           2 :         _initializingFutures.remove(T);</span></span>
+<span id="L357"><span class="lineNum">     357</span> <span class="tlaGNC">           1 :         completer.complete(instance);</span></span>
+<span id="L358"><span class="lineNum">     358</span>              :         return instance;</span>
+<span id="L359"><span class="lineNum">     359</span>              :       } catch (e) {</span>
+<span id="L360"><span class="lineNum">     360</span>              :         // Remove failed service from both futures and factories to allow re-registration</span>
+<span id="L361"><span class="lineNum">     361</span> <span class="tlaGNC">           2 :         _initializingFutures.remove(T);</span></span>
+<span id="L362"><span class="lineNum">     362</span> <span class="tlaGNC">           2 :         _singletonFactories.remove(T);</span></span>
+<span id="L363"><span class="lineNum">     363</span> <span class="tlaGNC">           1 :         if (!completer.isCompleted) {</span></span>
+<span id="L364"><span class="lineNum">     364</span> <span class="tlaGNC">           1 :           completer.completeError(e);</span></span>
+<span id="L365"><span class="lineNum">     365</span>              :         }</span>
+<span id="L366"><span class="lineNum">     366</span>              :         rethrow;</span>
+<span id="L367"><span class="lineNum">     367</span>              :       }</span>
+<span id="L368"><span class="lineNum">     368</span>              :     }</span>
+<span id="L369"><span class="lineNum">     369</span>              : </span>
+<span id="L370"><span class="lineNum">     370</span> <span class="tlaGNC">           2 :     throw StateError('Async service $T not registered');</span></span>
+<span id="L371"><span class="lineNum">     371</span>              :   }</span>
+<span id="L372"><span class="lineNum">     372</span>              : </span>
+<span id="L373"><span class="lineNum">     373</span>              :   /// Check if a service is registered</span>
+<span id="L374"><span class="lineNum">     374</span> <span class="tlaGNC">          13 :   bool isRegistered&lt;T&gt;() {</span></span>
+<span id="L375"><span class="lineNum">     375</span> <span class="tlaGNC">          26 :     return _services.containsKey(T) ||</span></span>
+<span id="L376"><span class="lineNum">     376</span> <span class="tlaGNC">          26 :         _factories.containsKey(T) ||</span></span>
+<span id="L377"><span class="lineNum">     377</span> <span class="tlaGNC">          12 :         _singletonFactories.containsKey(T);</span></span>
+<span id="L378"><span class="lineNum">     378</span>              :   }</span>
+<span id="L379"><span class="lineNum">     379</span>              : </span>
+<span id="L380"><span class="lineNum">     380</span>              :   /// Clear all registrations (for testing)</span>
+<span id="L381"><span class="lineNum">     381</span> <span class="tlaGNC">          13 :   void reset() {</span></span>
+<span id="L382"><span class="lineNum">     382</span> <span class="tlaGNC">          26 :     _services.clear();</span></span>
+<span id="L383"><span class="lineNum">     383</span> <span class="tlaGNC">          26 :     _factories.clear();</span></span>
+<span id="L384"><span class="lineNum">     384</span> <span class="tlaGNC">          26 :     _singletonFactories.clear();</span></span>
+<span id="L385"><span class="lineNum">     385</span> <span class="tlaGNC">          26 :     _initializingFutures.clear();</span></span>
+<span id="L386"><span class="lineNum">     386</span>              :   }</span>
+<span id="L387"><span class="lineNum">     387</span>              : }</span>
+<span id="L388"><span class="lineNum">     388</span>              : </span>
+<span id="L389"><span class="lineNum">     389</span>              : // Extension for easier access</span>
+<span id="L390"><span class="lineNum">     390</span>              : extension GetIt on DependencyContainer {</span>
+<span id="L391"><span class="lineNum">     391</span> <span class="tlaGNC">           3 :   static T get&lt;T&gt;() =&gt; DependencyContainer.instance.get&lt;T&gt;();</span></span>
+<span id="L392"><span class="lineNum">     392</span> <span class="tlaGNC">           3 :   static Future&lt;T&gt; getAsync&lt;T&gt;() =&gt; DependencyContainer.instance.getAsync&lt;T&gt;();</span></span>
+<span id="L393"><span class="lineNum">     393</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3.1-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - core/memory/memory_aware.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory core/memory">core/memory</a> - memory_aware.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryLo">71.4&nbsp;%</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">5</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-06-25 11:02:34</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : import 'memory_pressure_level.dart';</span>
+<span id="L2"><span class="lineNum">       2</span>              : </span>
+<span id="L3"><span class="lineNum">       3</span>              : /// Interface for components that can respond to memory pressure</span>
+<span id="L4"><span class="lineNum">       4</span>              : abstract class MemoryAware {</span>
+<span id="L5"><span class="lineNum">       5</span>              :   /// Called when memory pressure changes</span>
+<span id="L6"><span class="lineNum">       6</span>              :   /// Components should implement cleanup strategies based on the pressure level</span>
+<span id="L7"><span class="lineNum">       7</span>              :   Future&lt;void&gt; onMemoryPressure(MemoryPressureLevel level);</span>
+<span id="L8"><span class="lineNum">       8</span>              :   </span>
+<span id="L9"><span class="lineNum">       9</span>              :   /// Priority of this component (higher values = higher priority)</span>
+<span id="L10"><span class="lineNum">      10</span>              :   /// Higher priority components are cleaned up last</span>
+<span id="L11"><span class="lineNum">      11</span>              :   /// Range: 0-100, where 100 is critical system component</span>
+<span id="L12"><span class="lineNum">      12</span>              :   int get memoryPriority;</span>
+<span id="L13"><span class="lineNum">      13</span>              :   </span>
+<span id="L14"><span class="lineNum">      14</span>              :   /// Human-readable name for logging and debugging</span>
+<span id="L15"><span class="lineNum">      15</span>              :   String get componentName;</span>
+<span id="L16"><span class="lineNum">      16</span>              :   </span>
+<span id="L17"><span class="lineNum">      17</span>              :   /// Estimated memory usage in bytes</span>
+<span id="L18"><span class="lineNum">      18</span>              :   /// Return -1 if unknown</span>
+<span id="L19"><span class="lineNum">      19</span> <span class="tlaUNC">           0 :   int get estimatedMemoryUsage =&gt; -1;</span></span>
+<span id="L20"><span class="lineNum">      20</span>              :   </span>
+<span id="L21"><span class="lineNum">      21</span>              :   /// Whether this component can be safely cleaned up</span>
+<span id="L22"><span class="lineNum">      22</span>              :   /// Critical components might return false</span>
+<span id="L23"><span class="lineNum">      23</span> <span class="tlaUNC">           0 :   bool get canCleanup =&gt; true;</span></span>
+<span id="L24"><span class="lineNum">      24</span>              : }</span>
+<span id="L25"><span class="lineNum">      25</span>              : </span>
+<span id="L26"><span class="lineNum">      26</span>              : /// Memory priority constants for common component types</span>
+<span id="L27"><span class="lineNum">      27</span>              : class MemoryPriority {</span>
+<span id="L28"><span class="lineNum">      28</span>              :   static const int critical = 100;    // Core SDK functionality</span>
+<span id="L29"><span class="lineNum">      29</span>              :   static const int high = 80;         // Active user features</span>
+<span id="L30"><span class="lineNum">      30</span>              :   static const int normal = 50;       // Standard caching</span>
+<span id="L31"><span class="lineNum">      31</span>              :   static const int low = 20;          // Optional features</span>
+<span id="L32"><span class="lineNum">      32</span>              :   static const int background = 10;   // Background tasks</span>
+<span id="L33"><span class="lineNum">      33</span>              : }</span>
+<span id="L34"><span class="lineNum">      34</span>              : </span>
+<span id="L35"><span class="lineNum">      35</span>              : /// Result of a memory cleanup operation</span>
+<span id="L36"><span class="lineNum">      36</span>              : class MemoryCleanupResult {</span>
+<span id="L37"><span class="lineNum">      37</span>              :   final String componentName;</span>
+<span id="L38"><span class="lineNum">      38</span>              :   final int bytesFreed;</span>
+<span id="L39"><span class="lineNum">      39</span>              :   final bool success;</span>
+<span id="L40"><span class="lineNum">      40</span>              :   final String? error;</span>
+<span id="L41"><span class="lineNum">      41</span>              :   final Duration duration;</span>
+<span id="L42"><span class="lineNum">      42</span>              :   </span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaGNC">          16 :   MemoryCleanupResult({</span></span>
+<span id="L44"><span class="lineNum">      44</span>              :     required this.componentName,</span>
+<span id="L45"><span class="lineNum">      45</span>              :     required this.bytesFreed,</span>
+<span id="L46"><span class="lineNum">      46</span>              :     required this.success,</span>
+<span id="L47"><span class="lineNum">      47</span>              :     this.error,</span>
+<span id="L48"><span class="lineNum">      48</span>              :     required this.duration,</span>
+<span id="L49"><span class="lineNum">      49</span>              :   });</span>
+<span id="L50"><span class="lineNum">      50</span>              :   </span>
+<span id="L51"><span class="lineNum">      51</span> <span class="tlaGNC">           1 :   @override</span></span>
+<span id="L52"><span class="lineNum">      52</span>              :   String toString() {</span>
+<span id="L53"><span class="lineNum">      53</span> <span class="tlaGNC">           1 :     final status = success ? 'Success' : 'Failed';</span></span>
+<span id="L54"><span class="lineNum">      54</span> <span class="tlaGNC">           7 :     final freed = bytesFreed &gt; 0 ? '${(bytesFreed / 1024 / 1024).toStringAsFixed(2)}MB' : '0MB';</span></span>
+<span id="L55"><span class="lineNum">      55</span> <span class="tlaGNC">           7 :     return '$componentName: $status, freed $freed in ${duration.inMilliseconds}ms${error != null ? ', error: $error' : ''}';</span></span>
+<span id="L56"><span class="lineNum">      56</span>              :   }</span>
+<span id="L57"><span class="lineNum">      57</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3.1-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

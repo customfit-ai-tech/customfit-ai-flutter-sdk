@@ -1,0 +1,1412 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - config/core/cf_config.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory config/core">config/core</a> - cf_config.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryMed">87.3&nbsp;%</td>
+            <td class="headerCovTableEntry">480</td>
+            <td class="headerCovTableEntry">419</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-06-25 11:02:34</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : // lib/src/config/core/cf_config.dart</span>
+<span id="L2"><span class="lineNum">       2</span>              : //</span>
+<span id="L3"><span class="lineNum">       3</span>              : // Immutable configuration class for CustomFit SDK initialization.</span>
+<span id="L4"><span class="lineNum">       4</span>              : // Defines all settings that control SDK behavior including network timeouts,</span>
+<span id="L5"><span class="lineNum">       5</span>              : // event batching, polling intervals, and feature toggles.</span>
+<span id="L6"><span class="lineNum">       6</span>              : //</span>
+<span id="L7"><span class="lineNum">       7</span>              : // This file is part of the CustomFit SDK for Flutter.</span>
+<span id="L8"><span class="lineNum">       8</span>              : </span>
+<span id="L9"><span class="lineNum">       9</span>              : import 'dart:convert';</span>
+<span id="L10"><span class="lineNum">      10</span>              : import '../../logging/logger.dart';</span>
+<span id="L11"><span class="lineNum">      11</span>              : import '../../constants/cf_constants.dart';</span>
+<span id="L12"><span class="lineNum">      12</span>              : </span>
+<span id="L13"><span class="lineNum">      13</span>              : /// Immutable configuration class for CustomFit SDK initialization.</span>
+<span id="L14"><span class="lineNum">      14</span>              : ///</span>
+<span id="L15"><span class="lineNum">      15</span>              : /// [CFConfig] defines all settings that control SDK behavior including network timeouts,</span>
+<span id="L16"><span class="lineNum">      16</span>              : /// event batching, polling intervals, and feature toggles. Use the builder pattern</span>
+<span id="L17"><span class="lineNum">      17</span>              : /// to create instances with your desired configuration.</span>
+<span id="L18"><span class="lineNum">      18</span>              : ///</span>
+<span id="L19"><span class="lineNum">      19</span>              : /// ## Usage</span>
+<span id="L20"><span class="lineNum">      20</span>              : ///</span>
+<span id="L21"><span class="lineNum">      21</span>              : /// ```dart</span>
+<span id="L22"><span class="lineNum">      22</span>              : /// final config = CFConfig.builder('your-client-key')</span>
+<span id="L23"><span class="lineNum">      23</span>              : ///   .setDebugLoggingEnabled(true)</span>
+<span id="L24"><span class="lineNum">      24</span>              : ///   .setEventsFlushIntervalMs(5000)</span>
+<span id="L25"><span class="lineNum">      25</span>              : ///   .setNetworkConnectionTimeoutMs(10000)</span>
+<span id="L26"><span class="lineNum">      26</span>              : ///   .setOfflineMode(false)</span>
+<span id="L27"><span class="lineNum">      27</span>              : ///   .build();</span>
+<span id="L28"><span class="lineNum">      28</span>              : /// ```</span>
+<span id="L29"><span class="lineNum">      29</span>              : ///</span>
+<span id="L30"><span class="lineNum">      30</span>              : /// ## Configuration Categories</span>
+<span id="L31"><span class="lineNum">      31</span>              : ///</span>
+<span id="L32"><span class="lineNum">      32</span>              : /// - **Authentication**: Client key for service authentication</span>
+<span id="L33"><span class="lineNum">      33</span>              : /// - **Event Tracking**: Queue sizes, flush intervals, and batching behavior</span>
+<span id="L34"><span class="lineNum">      34</span>              : /// - **Network**: Connection and read timeouts, retry policies</span>
+<span id="L35"><span class="lineNum">      35</span>              : /// - **Polling**: Background polling intervals for configuration updates</span>
+<span id="L36"><span class="lineNum">      36</span>              : /// - **Logging**: Debug and verbose logging controls</span>
+<span id="L37"><span class="lineNum">      37</span>              : /// - **Offline**: Offline mode and local storage settings</span>
+<span id="L38"><span class="lineNum">      38</span>              : ///</span>
+<span id="L39"><span class="lineNum">      39</span>              : /// ## Thread Safety</span>
+<span id="L40"><span class="lineNum">      40</span>              : ///</span>
+<span id="L41"><span class="lineNum">      41</span>              : /// [CFConfig] instances are immutable and thread-safe. All fields are final</span>
+<span id="L42"><span class="lineNum">      42</span>              : /// and cannot be modified after construction.</span>
+<span id="L43"><span class="lineNum">      43</span>              : class CFConfig {</span>
+<span id="L44"><span class="lineNum">      44</span>              :   /// Client key for authenticating with the CustomFit services</span>
+<span id="L45"><span class="lineNum">      45</span>              :   final String clientKey;</span>
+<span id="L46"><span class="lineNum">      46</span>              : </span>
+<span id="L47"><span class="lineNum">      47</span>              :   /// Environment for API endpoints (production by default)</span>
+<span id="L48"><span class="lineNum">      48</span>              :   final CFEnvironment environment;</span>
+<span id="L49"><span class="lineNum">      49</span>              : </span>
+<span id="L50"><span class="lineNum">      50</span>              :   // Event tracker configuration</span>
+<span id="L51"><span class="lineNum">      51</span>              :   /// Maximum number of events to queue before forcing a flush</span>
+<span id="L52"><span class="lineNum">      52</span>              :   final int eventsQueueSize;</span>
+<span id="L53"><span class="lineNum">      53</span>              : </span>
+<span id="L54"><span class="lineNum">      54</span>              :   /// Maximum time in seconds events should be kept in queue before flushing</span>
+<span id="L55"><span class="lineNum">      55</span>              :   final int eventsFlushTimeSeconds;</span>
+<span id="L56"><span class="lineNum">      56</span>              : </span>
+<span id="L57"><span class="lineNum">      57</span>              :   /// Interval in milliseconds for the event flush timer</span>
+<span id="L58"><span class="lineNum">      58</span>              :   final int eventsFlushIntervalMs;</span>
+<span id="L59"><span class="lineNum">      59</span>              : </span>
+<span id="L60"><span class="lineNum">      60</span>              :   // Retry configuration</span>
+<span id="L61"><span class="lineNum">      61</span>              :   /// Maximum number of retry attempts for failed network requests</span>
+<span id="L62"><span class="lineNum">      62</span>              :   final int maxRetryAttempts;</span>
+<span id="L63"><span class="lineNum">      63</span>              : </span>
+<span id="L64"><span class="lineNum">      64</span>              :   /// Initial delay in milliseconds before the first retry attempt</span>
+<span id="L65"><span class="lineNum">      65</span>              :   final int retryInitialDelayMs;</span>
+<span id="L66"><span class="lineNum">      66</span>              : </span>
+<span id="L67"><span class="lineNum">      67</span>              :   /// Maximum delay in milliseconds between retry attempts</span>
+<span id="L68"><span class="lineNum">      68</span>              :   final int retryMaxDelayMs;</span>
+<span id="L69"><span class="lineNum">      69</span>              : </span>
+<span id="L70"><span class="lineNum">      70</span>              :   /// Multiplier for calculating exponential backoff between retries</span>
+<span id="L71"><span class="lineNum">      71</span>              :   final double retryBackoffMultiplier;</span>
+<span id="L72"><span class="lineNum">      72</span>              : </span>
+<span id="L73"><span class="lineNum">      73</span>              :   // Summary manager configuration</span>
+<span id="L74"><span class="lineNum">      74</span>              :   /// Maximum number of summaries to queue before forcing a flush</span>
+<span id="L75"><span class="lineNum">      75</span>              :   final int summariesQueueSize;</span>
+<span id="L76"><span class="lineNum">      76</span>              : </span>
+<span id="L77"><span class="lineNum">      77</span>              :   /// Maximum time in seconds summaries should be kept in queue before flushing</span>
+<span id="L78"><span class="lineNum">      78</span>              :   final int summariesFlushTimeSeconds;</span>
+<span id="L79"><span class="lineNum">      79</span>              : </span>
+<span id="L80"><span class="lineNum">      80</span>              :   /// Interval in milliseconds for the summary flush timer</span>
+<span id="L81"><span class="lineNum">      81</span>              :   final int summariesFlushIntervalMs;</span>
+<span id="L82"><span class="lineNum">      82</span>              : </span>
+<span id="L83"><span class="lineNum">      83</span>              :   // SDK settings check configuration</span>
+<span id="L84"><span class="lineNum">      84</span>              :   /// Interval in milliseconds for checking SDK settings</span>
+<span id="L85"><span class="lineNum">      85</span>              :   final int sdkSettingsCheckIntervalMs;</span>
+<span id="L86"><span class="lineNum">      86</span>              : </span>
+<span id="L87"><span class="lineNum">      87</span>              :   // Network configuration</span>
+<span id="L88"><span class="lineNum">      88</span>              :   /// Connection timeout in milliseconds</span>
+<span id="L89"><span class="lineNum">      89</span>              :   final int networkConnectionTimeoutMs;</span>
+<span id="L90"><span class="lineNum">      90</span>              : </span>
+<span id="L91"><span class="lineNum">      91</span>              :   /// Read timeout in milliseconds</span>
+<span id="L92"><span class="lineNum">      92</span>              :   final int networkReadTimeoutMs;</span>
+<span id="L93"><span class="lineNum">      93</span>              : </span>
+<span id="L94"><span class="lineNum">      94</span>              :   // Logging configuration</span>
+<span id="L95"><span class="lineNum">      95</span>              :   /// Whether logging is enabled</span>
+<span id="L96"><span class="lineNum">      96</span>              :   final bool loggingEnabled;</span>
+<span id="L97"><span class="lineNum">      97</span>              : </span>
+<span id="L98"><span class="lineNum">      98</span>              :   /// Whether debug logging is enabled</span>
+<span id="L99"><span class="lineNum">      99</span>              :   final bool debugLoggingEnabled;</span>
+<span id="L100"><span class="lineNum">     100</span>              : </span>
+<span id="L101"><span class="lineNum">     101</span>              :   /// Log level</span>
+<span id="L102"><span class="lineNum">     102</span>              :   final String logLevel;</span>
+<span id="L103"><span class="lineNum">     103</span>              : </span>
+<span id="L104"><span class="lineNum">     104</span>              :   // Offline mode</span>
+<span id="L105"><span class="lineNum">     105</span>              :   /// Whether the SDK is in offline mode</span>
+<span id="L106"><span class="lineNum">     106</span>              :   final bool offlineMode;</span>
+<span id="L107"><span class="lineNum">     107</span>              : </span>
+<span id="L108"><span class="lineNum">     108</span>              :   // Background operation settings</span>
+<span id="L109"><span class="lineNum">     109</span>              :   /// Whether to disable background polling</span>
+<span id="L110"><span class="lineNum">     110</span>              :   final bool disableBackgroundPolling;</span>
+<span id="L111"><span class="lineNum">     111</span>              : </span>
+<span id="L112"><span class="lineNum">     112</span>              :   /// Interval in milliseconds for background polling</span>
+<span id="L113"><span class="lineNum">     113</span>              :   final int backgroundPollingIntervalMs;</span>
+<span id="L114"><span class="lineNum">     114</span>              : </span>
+<span id="L115"><span class="lineNum">     115</span>              :   /// Whether to reduce polling frequency when battery is low</span>
+<span id="L116"><span class="lineNum">     116</span>              :   final bool useReducedPollingWhenBatteryLow;</span>
+<span id="L117"><span class="lineNum">     117</span>              : </span>
+<span id="L118"><span class="lineNum">     118</span>              :   /// Interval in milliseconds for reduced polling</span>
+<span id="L119"><span class="lineNum">     119</span>              :   final int reducedPollingIntervalMs;</span>
+<span id="L120"><span class="lineNum">     120</span>              : </span>
+<span id="L121"><span class="lineNum">     121</span>              :   /// Maximum number of events to store offline</span>
+<span id="L122"><span class="lineNum">     122</span>              :   final int maxStoredEvents;</span>
+<span id="L123"><span class="lineNum">     123</span>              : </span>
+<span id="L124"><span class="lineNum">     124</span>              :   // Environment attributes</span>
+<span id="L125"><span class="lineNum">     125</span>              :   /// Whether to automatically collect environment attributes</span>
+<span id="L126"><span class="lineNum">     126</span>              :   final bool autoEnvAttributesEnabled;</span>
+<span id="L127"><span class="lineNum">     127</span>              : </span>
+<span id="L128"><span class="lineNum">     128</span>              :   // Local Storage Configuration</span>
+<span id="L129"><span class="lineNum">     129</span>              :   /// Whether to enable local storage/caching</span>
+<span id="L130"><span class="lineNum">     130</span>              :   final bool localStorageEnabled;</span>
+<span id="L131"><span class="lineNum">     131</span>              : </span>
+<span id="L132"><span class="lineNum">     132</span>              :   /// Cache TTL in seconds for configuration data</span>
+<span id="L133"><span class="lineNum">     133</span>              :   final int configCacheTtlSeconds;</span>
+<span id="L134"><span class="lineNum">     134</span>              : </span>
+<span id="L135"><span class="lineNum">     135</span>              :   /// Cache TTL in seconds for event data</span>
+<span id="L136"><span class="lineNum">     136</span>              :   final int eventCacheTtlSeconds;</span>
+<span id="L137"><span class="lineNum">     137</span>              : </span>
+<span id="L138"><span class="lineNum">     138</span>              :   /// Cache TTL in seconds for summary data</span>
+<span id="L139"><span class="lineNum">     139</span>              :   final int summaryCacheTtlSeconds;</span>
+<span id="L140"><span class="lineNum">     140</span>              : </span>
+<span id="L141"><span class="lineNum">     141</span>              :   /// Maximum size of local cache in MB</span>
+<span id="L142"><span class="lineNum">     142</span>              :   final int maxCacheSizeMb;</span>
+<span id="L143"><span class="lineNum">     143</span>              : </span>
+<span id="L144"><span class="lineNum">     144</span>              :   // Remote logging configuration</span>
+<span id="L145"><span class="lineNum">     145</span>              :   /// Whether remote logging is enabled</span>
+<span id="L146"><span class="lineNum">     146</span>              :   final bool remoteLoggingEnabled;</span>
+<span id="L147"><span class="lineNum">     147</span>              : </span>
+<span id="L148"><span class="lineNum">     148</span>              :   /// Remote log provider (&quot;logtail&quot;, &quot;custom&quot;, or &quot;console_only&quot;)</span>
+<span id="L149"><span class="lineNum">     149</span>              :   final String remoteLogProvider;</span>
+<span id="L150"><span class="lineNum">     150</span>              : </span>
+<span id="L151"><span class="lineNum">     151</span>              :   /// Remote log endpoint URL</span>
+<span id="L152"><span class="lineNum">     152</span>              :   final String? remoteLogEndpoint;</span>
+<span id="L153"><span class="lineNum">     153</span>              : </span>
+<span id="L154"><span class="lineNum">     154</span>              :   /// Remote log API key</span>
+<span id="L155"><span class="lineNum">     155</span>              :   final String? remoteLogApiKey;</span>
+<span id="L156"><span class="lineNum">     156</span>              : </span>
+<span id="L157"><span class="lineNum">     157</span>              :   /// Remote log level (&quot;debug&quot;, &quot;info&quot;, &quot;warn&quot;, &quot;error&quot;)</span>
+<span id="L158"><span class="lineNum">     158</span>              :   final String remoteLogLevel;</span>
+<span id="L159"><span class="lineNum">     159</span>              : </span>
+<span id="L160"><span class="lineNum">     160</span>              :   /// Remote log batch size</span>
+<span id="L161"><span class="lineNum">     161</span>              :   final int remoteLogBatchSize;</span>
+<span id="L162"><span class="lineNum">     162</span>              : </span>
+<span id="L163"><span class="lineNum">     163</span>              :   /// Remote log flush interval in milliseconds</span>
+<span id="L164"><span class="lineNum">     164</span>              :   final int remoteLogFlushIntervalMs;</span>
+<span id="L165"><span class="lineNum">     165</span>              : </span>
+<span id="L166"><span class="lineNum">     166</span>              :   /// Remote log timeout in milliseconds</span>
+<span id="L167"><span class="lineNum">     167</span>              :   final int remoteLogTimeout;</span>
+<span id="L168"><span class="lineNum">     168</span>              : </span>
+<span id="L169"><span class="lineNum">     169</span>              :   /// Remote log metadata</span>
+<span id="L170"><span class="lineNum">     170</span>              :   final Map&lt;String, dynamic&gt;? remoteLogMetadata;</span>
+<span id="L171"><span class="lineNum">     171</span>              : </span>
+<span id="L172"><span class="lineNum">     172</span>              :   /// Whether to persist cache across app restarts</span>
+<span id="L173"><span class="lineNum">     173</span>              :   final bool persistCacheAcrossRestarts;</span>
+<span id="L174"><span class="lineNum">     174</span>              : </span>
+<span id="L175"><span class="lineNum">     175</span>              :   /// Whether to use stale cache while revalidating</span>
+<span id="L176"><span class="lineNum">     176</span>              :   final bool useStaleWhileRevalidate;</span>
+<span id="L177"><span class="lineNum">     177</span>              : </span>
+<span id="L178"><span class="lineNum">     178</span>              :   // Certificate pinning configuration</span>
+<span id="L179"><span class="lineNum">     179</span>              :   /// Whether certificate pinning is enabled</span>
+<span id="L180"><span class="lineNum">     180</span>              :   final bool certificatePinningEnabled;</span>
+<span id="L181"><span class="lineNum">     181</span>              : </span>
+<span id="L182"><span class="lineNum">     182</span>              :   /// List of SHA-256 certificate fingerprints to pin</span>
+<span id="L183"><span class="lineNum">     183</span>              :   final List&lt;String&gt; pinnedCertificates;</span>
+<span id="L184"><span class="lineNum">     184</span>              : </span>
+<span id="L185"><span class="lineNum">     185</span>              :   /// Whether to allow self-signed certificates (for development)</span>
+<span id="L186"><span class="lineNum">     186</span>              :   final bool allowSelfSignedCertificates;</span>
+<span id="L187"><span class="lineNum">     187</span>              : </span>
+<span id="L188"><span class="lineNum">     188</span>              :   // Memory management configuration</span>
+<span id="L189"><span class="lineNum">     189</span>              :   /// Whether memory management is enabled</span>
+<span id="L190"><span class="lineNum">     190</span>              :   final bool? enableMemoryManagement;</span>
+<span id="L191"><span class="lineNum">     191</span>              : </span>
+<span id="L192"><span class="lineNum">     192</span>              :   /// Memory pressure thresholds configuration</span>
+<span id="L193"><span class="lineNum">     193</span>              :   final Map&lt;String, double&gt;? memoryPressureThresholds;</span>
+<span id="L194"><span class="lineNum">     194</span>              : </span>
+<span id="L195"><span class="lineNum">     195</span>              :   /// Memory monitoring interval in seconds</span>
+<span id="L196"><span class="lineNum">     196</span>              :   final int? memoryMonitoringIntervalSeconds;</span>
+<span id="L197"><span class="lineNum">     197</span>              :   </span>
+<span id="L198"><span class="lineNum">     198</span>              :   // Secure storage configuration</span>
+<span id="L199"><span class="lineNum">     199</span>              :   /// Whether to use secure storage for sensitive data</span>
+<span id="L200"><span class="lineNum">     200</span>              :   final bool useSecureStorage;</span>
+<span id="L201"><span class="lineNum">     201</span>              :   </span>
+<span id="L202"><span class="lineNum">     202</span>              :   /// List of data types to store securely</span>
+<span id="L203"><span class="lineNum">     203</span>              :   final List&lt;String&gt; secureDataTypes;</span>
+<span id="L204"><span class="lineNum">     204</span>              : </span>
+<span id="L205"><span class="lineNum">     205</span>              :   /// Get dimension ID from client key (cached for performance)</span>
+<span id="L206"><span class="lineNum">     206</span> <span class="tlaGNC">          13 :   String? get dimensionId {</span></span>
+<span id="L207"><span class="lineNum">     207</span> <span class="tlaGNC">          26 :     return _JWTParser.getDimensionId(clientKey);</span></span>
+<span id="L208"><span class="lineNum">     208</span>              :   }</span>
+<span id="L209"><span class="lineNum">     209</span>              : </span>
+<span id="L210"><span class="lineNum">     210</span>              :   /// Get base API URL for current environment</span>
+<span id="L211"><span class="lineNum">     211</span> <span class="tlaGNC">           6 :   String get baseApiUrl =&gt; CFConstants.api.getBaseApiUrl(environment);</span></span>
+<span id="L212"><span class="lineNum">     212</span>              : </span>
+<span id="L213"><span class="lineNum">     213</span>              :   /// Get SDK settings base URL for current environment</span>
+<span id="L214"><span class="lineNum">     214</span> <span class="tlaGNC">           2 :   String get sdkSettingsBaseUrl =&gt;</span></span>
+<span id="L215"><span class="lineNum">     215</span> <span class="tlaGNC">           4 :       CFConstants.api.getSdkSettingsBaseUrl(environment);</span></span>
+<span id="L216"><span class="lineNum">     216</span>              : </span>
+<span id="L217"><span class="lineNum">     217</span>              :   /// Auto-detect environment from client key content</span>
+<span id="L218"><span class="lineNum">     218</span>              :   /// Returns staging for development/test keys, production otherwise</span>
+<span id="L219"><span class="lineNum">     219</span> <span class="tlaGNC">           2 :   static CFEnvironment detectEnvironment(String clientKey) {</span></span>
+<span id="L220"><span class="lineNum">     220</span> <span class="tlaGNC">           2 :     final dimensionId = _JWTParser.getDimensionId(clientKey);</span></span>
+<span id="L221"><span class="lineNum">     221</span>              :     if (dimensionId != null) {</span>
+<span id="L222"><span class="lineNum">     222</span> <span class="tlaGNC">           2 :       final lowerDimensionId = dimensionId.toLowerCase();</span></span>
+<span id="L223"><span class="lineNum">     223</span>              : </span>
+<span id="L224"><span class="lineNum">     224</span>              :       // Check for staging indicators (includes dev/test since CFEnvironment only has production/staging)</span>
+<span id="L225"><span class="lineNum">     225</span> <span class="tlaGNC">           2 :       if (lowerDimensionId.contains('stage') ||</span></span>
+<span id="L226"><span class="lineNum">     226</span> <span class="tlaGNC">           2 :           lowerDimensionId.contains('staging') ||</span></span>
+<span id="L227"><span class="lineNum">     227</span> <span class="tlaGNC">           2 :           lowerDimensionId.contains('dev') ||</span></span>
+<span id="L228"><span class="lineNum">     228</span> <span class="tlaGNC">           2 :           lowerDimensionId.contains('development') ||</span></span>
+<span id="L229"><span class="lineNum">     229</span> <span class="tlaGNC">           2 :           lowerDimensionId.contains('test')) {</span></span>
+<span id="L230"><span class="lineNum">     230</span>              :         return CFEnvironment.staging;</span>
+<span id="L231"><span class="lineNum">     231</span>              :       }</span>
+<span id="L232"><span class="lineNum">     232</span>              :     }</span>
+<span id="L233"><span class="lineNum">     233</span>              : </span>
+<span id="L234"><span class="lineNum">     234</span>              :     // Fallback: check client key content directly</span>
+<span id="L235"><span class="lineNum">     235</span> <span class="tlaGNC">           2 :     final lowerClientKey = clientKey.toLowerCase();</span></span>
+<span id="L236"><span class="lineNum">     236</span> <span class="tlaGNC">           2 :     if (lowerClientKey.contains('stage') ||</span></span>
+<span id="L237"><span class="lineNum">     237</span> <span class="tlaGNC">           2 :         lowerClientKey.contains('dev') ||</span></span>
+<span id="L238"><span class="lineNum">     238</span> <span class="tlaGNC">           2 :         lowerClientKey.contains('test')) {</span></span>
+<span id="L239"><span class="lineNum">     239</span>              :       return CFEnvironment.staging;</span>
+<span id="L240"><span class="lineNum">     240</span>              :     }</span>
+<span id="L241"><span class="lineNum">     241</span>              : </span>
+<span id="L242"><span class="lineNum">     242</span>              :     // Default to production for safety</span>
+<span id="L243"><span class="lineNum">     243</span>              :     return CFEnvironment.production;</span>
+<span id="L244"><span class="lineNum">     244</span>              :   }</span>
+<span id="L245"><span class="lineNum">     245</span>              : </span>
+<span id="L246"><span class="lineNum">     246</span>              :   /// Create a development configuration profile with optimized settings for development</span>
+<span id="L247"><span class="lineNum">     247</span>              :   ///</span>
+<span id="L248"><span class="lineNum">     248</span>              :   /// Features:</span>
+<span id="L249"><span class="lineNum">     249</span>              :   /// - Debug logging enabled</span>
+<span id="L250"><span class="lineNum">     250</span>              :   /// - Faster flush intervals for immediate feedback</span>
+<span id="L251"><span class="lineNum">     251</span>              :   /// - Shorter timeouts for quicker development iteration</span>
+<span id="L252"><span class="lineNum">     252</span>              :   /// - Reduced retry attempts to fail fast</span>
+<span id="L253"><span class="lineNum">     253</span>              :   ///</span>
+<span id="L254"><span class="lineNum">     254</span>              :   /// Example:</span>
+<span id="L255"><span class="lineNum">     255</span>              :   /// ```dart</span>
+<span id="L256"><span class="lineNum">     256</span>              :   /// final config = CFConfig.development('your-dev-key');</span>
+<span id="L257"><span class="lineNum">     257</span>              :   /// ```</span>
+<span id="L258"><span class="lineNum">     258</span> <span class="tlaGNC">           3 :   static CFConfig development(String clientKey) {</span></span>
+<span id="L259"><span class="lineNum">     259</span> <span class="tlaGNC">           3 :     return CFConfig.builder(clientKey)</span></span>
+<span id="L260"><span class="lineNum">     260</span> <span class="tlaGNC">           3 :         .setDebugLoggingEnabled(true)</span></span>
+<span id="L261"><span class="lineNum">     261</span> <span class="tlaGNC">           3 :         .setLoggingEnabled(true)</span></span>
+<span id="L262"><span class="lineNum">     262</span> <span class="tlaGNC">           3 :         .setLogLevel('debug')</span></span>
+<span id="L263"><span class="lineNum">     263</span> <span class="tlaGNC">           3 :         .setEventsFlushIntervalMs(1000) // Flush every 1 second</span></span>
+<span id="L264"><span class="lineNum">     264</span> <span class="tlaGNC">           3 :         .setSummariesFlushIntervalMs(1000)</span></span>
+<span id="L265"><span class="lineNum">     265</span> <span class="tlaGNC">           3 :         .setNetworkConnectionTimeoutMs(5000) // Shorter timeout</span></span>
+<span id="L266"><span class="lineNum">     266</span> <span class="tlaGNC">           3 :         .setNetworkReadTimeoutMs(10000)</span></span>
+<span id="L267"><span class="lineNum">     267</span> <span class="tlaGNC">           3 :         .setMaxRetryAttempts(2) // Fail faster in dev</span></span>
+<span id="L268"><span class="lineNum">     268</span> <span class="tlaGNC">           3 :         .setRetryInitialDelayMs(500)</span></span>
+<span id="L269"><span class="lineNum">     269</span> <span class="tlaGNC">           3 :         .setSdkSettingsCheckIntervalMs(30000) // Check every 30 seconds</span></span>
+<span id="L270"><span class="lineNum">     270</span> <span class="tlaGNC">           3 :         .setLocalStorageEnabled(true)</span></span>
+<span id="L271"><span class="lineNum">     271</span> <span class="tlaGNC">           3 :         .setConfigCacheTtlSeconds(300) // 5 minutes cache in dev</span></span>
+<span id="L272"><span class="lineNum">     272</span> <span class="tlaGNC">           3 :         .build();</span></span>
+<span id="L273"><span class="lineNum">     273</span>              :   }</span>
+<span id="L274"><span class="lineNum">     274</span>              : </span>
+<span id="L275"><span class="lineNum">     275</span>              :   /// Create a production configuration profile with optimized settings for production</span>
+<span id="L276"><span class="lineNum">     276</span>              :   ///</span>
+<span id="L277"><span class="lineNum">     277</span>              :   /// Features:</span>
+<span id="L278"><span class="lineNum">     278</span>              :   /// - Debug logging disabled for performance</span>
+<span id="L279"><span class="lineNum">     279</span>              :   /// - Longer flush intervals to reduce network usage</span>
+<span id="L280"><span class="lineNum">     280</span>              :   /// - Higher retry attempts for reliability</span>
+<span id="L281"><span class="lineNum">     281</span>              :   /// - Optimized timeouts for production environments</span>
+<span id="L282"><span class="lineNum">     282</span>              :   ///</span>
+<span id="L283"><span class="lineNum">     283</span>              :   /// Example:</span>
+<span id="L284"><span class="lineNum">     284</span>              :   /// ```dart</span>
+<span id="L285"><span class="lineNum">     285</span>              :   /// final config = CFConfig.production('your-prod-key');</span>
+<span id="L286"><span class="lineNum">     286</span>              :   /// ```</span>
+<span id="L287"><span class="lineNum">     287</span> <span class="tlaGNC">           3 :   static CFConfig production(String clientKey) {</span></span>
+<span id="L288"><span class="lineNum">     288</span> <span class="tlaGNC">           3 :     return CFConfig.builder(clientKey)</span></span>
+<span id="L289"><span class="lineNum">     289</span> <span class="tlaGNC">           3 :         .setDebugLoggingEnabled(false)</span></span>
+<span id="L290"><span class="lineNum">     290</span> <span class="tlaGNC">           3 :         .setLoggingEnabled(true)</span></span>
+<span id="L291"><span class="lineNum">     291</span> <span class="tlaGNC">           3 :         .setLogLevel('error') // Only log errors in production</span></span>
+<span id="L292"><span class="lineNum">     292</span> <span class="tlaGNC">           3 :         .setEventsFlushIntervalMs(30000) // Flush every 30 seconds</span></span>
+<span id="L293"><span class="lineNum">     293</span> <span class="tlaGNC">           3 :         .setSummariesFlushIntervalMs(30000)</span></span>
+<span id="L294"><span class="lineNum">     294</span> <span class="tlaGNC">           3 :         .setNetworkConnectionTimeoutMs(15000) // Longer timeout</span></span>
+<span id="L295"><span class="lineNum">     295</span> <span class="tlaGNC">           3 :         .setNetworkReadTimeoutMs(30000)</span></span>
+<span id="L296"><span class="lineNum">     296</span> <span class="tlaGNC">           3 :         .setMaxRetryAttempts(5) // More retries for reliability</span></span>
+<span id="L297"><span class="lineNum">     297</span> <span class="tlaGNC">           3 :         .setRetryInitialDelayMs(2000)</span></span>
+<span id="L298"><span class="lineNum">     298</span> <span class="tlaGNC">           3 :         .setRetryMaxDelayMs(60000)</span></span>
+<span id="L299"><span class="lineNum">     299</span> <span class="tlaGNC">           3 :         .setSdkSettingsCheckIntervalMs(300000) // Check every 5 minutes</span></span>
+<span id="L300"><span class="lineNum">     300</span> <span class="tlaGNC">           3 :         .setLocalStorageEnabled(true)</span></span>
+<span id="L301"><span class="lineNum">     301</span> <span class="tlaGNC">           3 :         .setConfigCacheTtlSeconds(3600) // 1 hour cache</span></span>
+<span id="L302"><span class="lineNum">     302</span> <span class="tlaGNC">           3 :         .setPersistCacheAcrossRestarts(true)</span></span>
+<span id="L303"><span class="lineNum">     303</span> <span class="tlaGNC">           3 :         .setUseStaleWhileRevalidate(true)</span></span>
+<span id="L304"><span class="lineNum">     304</span> <span class="tlaGNC">           3 :         .build();</span></span>
+<span id="L305"><span class="lineNum">     305</span>              :   }</span>
+<span id="L306"><span class="lineNum">     306</span>              : </span>
+<span id="L307"><span class="lineNum">     307</span>              :   /// Create a testing configuration profile with optimized settings for automated testing</span>
+<span id="L308"><span class="lineNum">     308</span>              :   ///</span>
+<span id="L309"><span class="lineNum">     309</span>              :   /// Features:</span>
+<span id="L310"><span class="lineNum">     310</span>              :   /// - Minimal logging to reduce test output noise</span>
+<span id="L311"><span class="lineNum">     311</span>              :   /// - Very fast flush intervals for test predictability</span>
+<span id="L312"><span class="lineNum">     312</span>              :   /// - Short timeouts to make tests run faster</span>
+<span id="L313"><span class="lineNum">     313</span>              :   /// - Reduced retry attempts to fail fast</span>
+<span id="L314"><span class="lineNum">     314</span>              :   /// - Offline mode support for isolated testing</span>
+<span id="L315"><span class="lineNum">     315</span>              :   ///</span>
+<span id="L316"><span class="lineNum">     316</span>              :   /// Example:</span>
+<span id="L317"><span class="lineNum">     317</span>              :   /// ```dart</span>
+<span id="L318"><span class="lineNum">     318</span>              :   /// final config = CFConfig.testing('test-key');</span>
+<span id="L319"><span class="lineNum">     319</span>              :   /// ```</span>
+<span id="L320"><span class="lineNum">     320</span> <span class="tlaGNC">           3 :   static CFConfig testing(String clientKey) {</span></span>
+<span id="L321"><span class="lineNum">     321</span> <span class="tlaGNC">           3 :     return CFConfig.builder(clientKey)</span></span>
+<span id="L322"><span class="lineNum">     322</span> <span class="tlaGNC">           3 :         .setDebugLoggingEnabled(false)</span></span>
+<span id="L323"><span class="lineNum">     323</span> <span class="tlaGNC">           3 :         .setLoggingEnabled(false) // Minimal logging in tests</span></span>
+<span id="L324"><span class="lineNum">     324</span> <span class="tlaGNC">           3 :         .setLogLevel('error')</span></span>
+<span id="L325"><span class="lineNum">     325</span> <span class="tlaGNC">           3 :         .setEventsFlushIntervalMs(100) // Very fast flush for tests</span></span>
+<span id="L326"><span class="lineNum">     326</span> <span class="tlaGNC">           3 :         .setSummariesFlushIntervalMs(100)</span></span>
+<span id="L327"><span class="lineNum">     327</span> <span class="tlaGNC">           3 :         .setNetworkConnectionTimeoutMs(2000) // Short timeout</span></span>
+<span id="L328"><span class="lineNum">     328</span> <span class="tlaGNC">           3 :         .setNetworkReadTimeoutMs(5000)</span></span>
+<span id="L329"><span class="lineNum">     329</span> <span class="tlaGNC">           3 :         .setMaxRetryAttempts(1) // Fail fast in tests</span></span>
+<span id="L330"><span class="lineNum">     330</span> <span class="tlaGNC">           3 :         .setRetryInitialDelayMs(100)</span></span>
+<span id="L331"><span class="lineNum">     331</span> <span class="tlaGNC">           3 :         .setSdkSettingsCheckIntervalMs(10000) // Check every 10 seconds</span></span>
+<span id="L332"><span class="lineNum">     332</span> <span class="tlaGNC">           3 :         .setLocalStorageEnabled(false) // Avoid persistence in tests</span></span>
+<span id="L333"><span class="lineNum">     333</span> <span class="tlaGNC">           3 :         .setConfigCacheTtlSeconds(60) // Short cache for tests</span></span>
+<span id="L334"><span class="lineNum">     334</span> <span class="tlaGNC">           3 :         .setPersistCacheAcrossRestarts(false)</span></span>
+<span id="L335"><span class="lineNum">     335</span> <span class="tlaGNC">           3 :         .setOfflineMode(false) // Default online for tests</span></span>
+<span id="L336"><span class="lineNum">     336</span> <span class="tlaGNC">           3 :         .build();</span></span>
+<span id="L337"><span class="lineNum">     337</span>              :   }</span>
+<span id="L338"><span class="lineNum">     338</span>              : </span>
+<span id="L339"><span class="lineNum">     339</span>              :   /// Private constructor - use builder pattern instead</span>
+<span id="L340"><span class="lineNum">     340</span> <span class="tlaGNC">          29 :   CFConfig._({</span></span>
+<span id="L341"><span class="lineNum">     341</span>              :     required this.clientKey,</span>
+<span id="L342"><span class="lineNum">     342</span>              :     this.environment = CFEnvironment.production,</span>
+<span id="L343"><span class="lineNum">     343</span>              :     this.eventsQueueSize = 100, // Consistent with Swift/Kotlin</span>
+<span id="L344"><span class="lineNum">     344</span>              :     this.eventsFlushTimeSeconds = 60, // Consistent with Swift/Kotlin</span>
+<span id="L345"><span class="lineNum">     345</span>              :     this.eventsFlushIntervalMs =</span>
+<span id="L346"><span class="lineNum">     346</span>              :         1000, // Consistent with Swift/Kotlin (1 second)</span>
+<span id="L347"><span class="lineNum">     347</span>              :     this.maxRetryAttempts = 3, // Consistent with Swift/Kotlin</span>
+<span id="L348"><span class="lineNum">     348</span>              :     this.retryInitialDelayMs = 1000, // Consistent with Swift/Kotlin</span>
+<span id="L349"><span class="lineNum">     349</span>              :     this.retryMaxDelayMs = 30000, // Consistent with Swift/Kotlin</span>
+<span id="L350"><span class="lineNum">     350</span>              :     this.retryBackoffMultiplier = 2.0, // Consistent with Swift/Kotlin</span>
+<span id="L351"><span class="lineNum">     351</span>              :     this.summariesQueueSize = 100, // Consistent with Swift/Kotlin</span>
+<span id="L352"><span class="lineNum">     352</span>              :     this.summariesFlushTimeSeconds = 60, // Consistent with Swift/Kotlin</span>
+<span id="L353"><span class="lineNum">     353</span>              :     this.summariesFlushIntervalMs =</span>
+<span id="L354"><span class="lineNum">     354</span>              :         60000, // Consistent with Swift/Kotlin (60 seconds)</span>
+<span id="L355"><span class="lineNum">     355</span>              :     this.sdkSettingsCheckIntervalMs =</span>
+<span id="L356"><span class="lineNum">     356</span>              :         300000, // Consistent with Swift/Kotlin (5 minutes)</span>
+<span id="L357"><span class="lineNum">     357</span>              :     this.networkConnectionTimeoutMs = 10000, // Consistent with Swift/Kotlin</span>
+<span id="L358"><span class="lineNum">     358</span>              :     this.networkReadTimeoutMs =</span>
+<span id="L359"><span class="lineNum">     359</span>              :         10000, // Consistent with Swift/Kotlin (changed from 30000)</span>
+<span id="L360"><span class="lineNum">     360</span>              :     this.loggingEnabled = true,</span>
+<span id="L361"><span class="lineNum">     361</span>              :     this.debugLoggingEnabled = false,</span>
+<span id="L362"><span class="lineNum">     362</span>              :     this.logLevel = 'DEBUG', // Consistent with Swift/Kotlin</span>
+<span id="L363"><span class="lineNum">     363</span>              :     this.offlineMode = false,</span>
+<span id="L364"><span class="lineNum">     364</span>              :     this.disableBackgroundPolling = false,</span>
+<span id="L365"><span class="lineNum">     365</span>              :     this.backgroundPollingIntervalMs =</span>
+<span id="L366"><span class="lineNum">     366</span>              :         3600000, // Consistent with Swift/Kotlin (1 hour)</span>
+<span id="L367"><span class="lineNum">     367</span>              :     this.useReducedPollingWhenBatteryLow = true,</span>
+<span id="L368"><span class="lineNum">     368</span>              :     this.reducedPollingIntervalMs =</span>
+<span id="L369"><span class="lineNum">     369</span>              :         7200000, // Consistent with Swift/Kotlin (2 hours)</span>
+<span id="L370"><span class="lineNum">     370</span>              :     this.maxStoredEvents = 100, // Consistent with Swift/Kotlin</span>
+<span id="L371"><span class="lineNum">     371</span>              :     this.autoEnvAttributesEnabled = false,</span>
+<span id="L372"><span class="lineNum">     372</span>              :     // Local Storage Configuration</span>
+<span id="L373"><span class="lineNum">     373</span>              :     this.localStorageEnabled = true,</span>
+<span id="L374"><span class="lineNum">     374</span>              :     this.configCacheTtlSeconds = 86400, // 24 hours</span>
+<span id="L375"><span class="lineNum">     375</span>              :     this.eventCacheTtlSeconds = 3600, // 1 hour</span>
+<span id="L376"><span class="lineNum">     376</span>              :     this.summaryCacheTtlSeconds = 3600, // 1 hour</span>
+<span id="L377"><span class="lineNum">     377</span>              :     this.maxCacheSizeMb = 50, // 50 MB</span>
+<span id="L378"><span class="lineNum">     378</span>              :     this.persistCacheAcrossRestarts = true,</span>
+<span id="L379"><span class="lineNum">     379</span>              :     this.useStaleWhileRevalidate = true,</span>
+<span id="L380"><span class="lineNum">     380</span>              :     // Remote logging configuration</span>
+<span id="L381"><span class="lineNum">     381</span>              :     this.remoteLoggingEnabled = false,</span>
+<span id="L382"><span class="lineNum">     382</span>              :     this.remoteLogProvider = 'console_only',</span>
+<span id="L383"><span class="lineNum">     383</span>              :     this.remoteLogEndpoint,</span>
+<span id="L384"><span class="lineNum">     384</span>              :     this.remoteLogApiKey,</span>
+<span id="L385"><span class="lineNum">     385</span>              :     this.remoteLogLevel = 'info',</span>
+<span id="L386"><span class="lineNum">     386</span>              :     this.remoteLogBatchSize = 10,</span>
+<span id="L387"><span class="lineNum">     387</span>              :     this.remoteLogFlushIntervalMs = 30000, // 30 seconds</span>
+<span id="L388"><span class="lineNum">     388</span>              :     this.remoteLogTimeout = 5000, // 5 seconds</span>
+<span id="L389"><span class="lineNum">     389</span>              :     this.remoteLogMetadata,</span>
+<span id="L390"><span class="lineNum">     390</span>              :     // Certificate pinning configuration</span>
+<span id="L391"><span class="lineNum">     391</span>              :     this.certificatePinningEnabled = false,</span>
+<span id="L392"><span class="lineNum">     392</span>              :     this.pinnedCertificates = const [],</span>
+<span id="L393"><span class="lineNum">     393</span>              :     this.allowSelfSignedCertificates = false,</span>
+<span id="L394"><span class="lineNum">     394</span>              :     // Memory management configuration</span>
+<span id="L395"><span class="lineNum">     395</span>              :     this.enableMemoryManagement,</span>
+<span id="L396"><span class="lineNum">     396</span>              :     this.memoryPressureThresholds,</span>
+<span id="L397"><span class="lineNum">     397</span>              :     this.memoryMonitoringIntervalSeconds,</span>
+<span id="L398"><span class="lineNum">     398</span>              :     // Secure storage configuration</span>
+<span id="L399"><span class="lineNum">     399</span>              :     this.useSecureStorage = true,</span>
+<span id="L400"><span class="lineNum">     400</span>              :     this.secureDataTypes = const ['session', 'api_keys', 'sensitive_events'],</span>
+<span id="L401"><span class="lineNum">     401</span>              :   });</span>
+<span id="L402"><span class="lineNum">     402</span>              : </span>
+<span id="L403"><span class="lineNum">     403</span>              :   /// Create a copy of this config with updated values</span>
+<span id="L404"><span class="lineNum">     404</span> <span class="tlaGNC">           3 :   CFConfig copyWith({</span></span>
+<span id="L405"><span class="lineNum">     405</span>              :     String? clientKey,</span>
+<span id="L406"><span class="lineNum">     406</span>              :     CFEnvironment? environment,</span>
+<span id="L407"><span class="lineNum">     407</span>              :     int? eventsQueueSize,</span>
+<span id="L408"><span class="lineNum">     408</span>              :     int? eventsFlushTimeSeconds,</span>
+<span id="L409"><span class="lineNum">     409</span>              :     int? eventsFlushIntervalMs,</span>
+<span id="L410"><span class="lineNum">     410</span>              :     int? maxRetryAttempts,</span>
+<span id="L411"><span class="lineNum">     411</span>              :     int? retryInitialDelayMs,</span>
+<span id="L412"><span class="lineNum">     412</span>              :     int? retryMaxDelayMs,</span>
+<span id="L413"><span class="lineNum">     413</span>              :     double? retryBackoffMultiplier,</span>
+<span id="L414"><span class="lineNum">     414</span>              :     int? summariesQueueSize,</span>
+<span id="L415"><span class="lineNum">     415</span>              :     int? summariesFlushTimeSeconds,</span>
+<span id="L416"><span class="lineNum">     416</span>              :     int? summariesFlushIntervalMs,</span>
+<span id="L417"><span class="lineNum">     417</span>              :     int? sdkSettingsCheckIntervalMs,</span>
+<span id="L418"><span class="lineNum">     418</span>              :     int? networkConnectionTimeoutMs,</span>
+<span id="L419"><span class="lineNum">     419</span>              :     int? networkReadTimeoutMs,</span>
+<span id="L420"><span class="lineNum">     420</span>              :     bool? loggingEnabled,</span>
+<span id="L421"><span class="lineNum">     421</span>              :     bool? debugLoggingEnabled,</span>
+<span id="L422"><span class="lineNum">     422</span>              :     String? logLevel,</span>
+<span id="L423"><span class="lineNum">     423</span>              :     bool? offlineMode,</span>
+<span id="L424"><span class="lineNum">     424</span>              :     bool? disableBackgroundPolling,</span>
+<span id="L425"><span class="lineNum">     425</span>              :     int? backgroundPollingIntervalMs,</span>
+<span id="L426"><span class="lineNum">     426</span>              :     bool? useReducedPollingWhenBatteryLow,</span>
+<span id="L427"><span class="lineNum">     427</span>              :     int? reducedPollingIntervalMs,</span>
+<span id="L428"><span class="lineNum">     428</span>              :     int? maxStoredEvents,</span>
+<span id="L429"><span class="lineNum">     429</span>              :     bool? autoEnvAttributesEnabled,</span>
+<span id="L430"><span class="lineNum">     430</span>              :     bool? localStorageEnabled,</span>
+<span id="L431"><span class="lineNum">     431</span>              :     int? configCacheTtlSeconds,</span>
+<span id="L432"><span class="lineNum">     432</span>              :     int? eventCacheTtlSeconds,</span>
+<span id="L433"><span class="lineNum">     433</span>              :     int? summaryCacheTtlSeconds,</span>
+<span id="L434"><span class="lineNum">     434</span>              :     int? maxCacheSizeMb,</span>
+<span id="L435"><span class="lineNum">     435</span>              :     bool? persistCacheAcrossRestarts,</span>
+<span id="L436"><span class="lineNum">     436</span>              :     bool? useStaleWhileRevalidate,</span>
+<span id="L437"><span class="lineNum">     437</span>              :     bool? remoteLoggingEnabled,</span>
+<span id="L438"><span class="lineNum">     438</span>              :     String? remoteLogProvider,</span>
+<span id="L439"><span class="lineNum">     439</span>              :     String? remoteLogEndpoint,</span>
+<span id="L440"><span class="lineNum">     440</span>              :     String? remoteLogApiKey,</span>
+<span id="L441"><span class="lineNum">     441</span>              :     String? remoteLogLevel,</span>
+<span id="L442"><span class="lineNum">     442</span>              :     int? remoteLogBatchSize,</span>
+<span id="L443"><span class="lineNum">     443</span>              :     int? remoteLogFlushIntervalMs,</span>
+<span id="L444"><span class="lineNum">     444</span>              :     int? remoteLogTimeout,</span>
+<span id="L445"><span class="lineNum">     445</span>              :     Map&lt;String, dynamic&gt;? remoteLogMetadata,</span>
+<span id="L446"><span class="lineNum">     446</span>              :     // Certificate pinning parameters</span>
+<span id="L447"><span class="lineNum">     447</span>              :     bool? certificatePinningEnabled,</span>
+<span id="L448"><span class="lineNum">     448</span>              :     List&lt;String&gt;? pinnedCertificates,</span>
+<span id="L449"><span class="lineNum">     449</span>              :     bool? allowSelfSignedCertificates,</span>
+<span id="L450"><span class="lineNum">     450</span>              :     // Memory management parameters</span>
+<span id="L451"><span class="lineNum">     451</span>              :     bool? enableMemoryManagement,</span>
+<span id="L452"><span class="lineNum">     452</span>              :     Map&lt;String, double&gt;? memoryPressureThresholds,</span>
+<span id="L453"><span class="lineNum">     453</span>              :     int? memoryMonitoringIntervalSeconds,</span>
+<span id="L454"><span class="lineNum">     454</span>              :     // Secure storage parameters</span>
+<span id="L455"><span class="lineNum">     455</span>              :     bool? useSecureStorage,</span>
+<span id="L456"><span class="lineNum">     456</span>              :     List&lt;String&gt;? secureDataTypes,</span>
+<span id="L457"><span class="lineNum">     457</span>              :   }) {</span>
+<span id="L458"><span class="lineNum">     458</span> <span class="tlaGNC">           3 :     return CFConfig._(</span></span>
+<span id="L459"><span class="lineNum">     459</span> <span class="tlaGNC">           3 :       clientKey: clientKey ?? this.clientKey,</span></span>
+<span id="L460"><span class="lineNum">     460</span> <span class="tlaGNC">           3 :       environment: environment ?? this.environment,</span></span>
+<span id="L461"><span class="lineNum">     461</span> <span class="tlaGNC">           3 :       eventsQueueSize: eventsQueueSize ?? this.eventsQueueSize,</span></span>
+<span id="L462"><span class="lineNum">     462</span>              :       eventsFlushTimeSeconds:</span>
+<span id="L463"><span class="lineNum">     463</span> <span class="tlaGNC">           3 :           eventsFlushTimeSeconds ?? this.eventsFlushTimeSeconds,</span></span>
+<span id="L464"><span class="lineNum">     464</span>              :       eventsFlushIntervalMs:</span>
+<span id="L465"><span class="lineNum">     465</span> <span class="tlaGNC">           3 :           eventsFlushIntervalMs ?? this.eventsFlushIntervalMs,</span></span>
+<span id="L466"><span class="lineNum">     466</span> <span class="tlaGNC">           3 :       maxRetryAttempts: maxRetryAttempts ?? this.maxRetryAttempts,</span></span>
+<span id="L467"><span class="lineNum">     467</span> <span class="tlaGNC">           3 :       retryInitialDelayMs: retryInitialDelayMs ?? this.retryInitialDelayMs,</span></span>
+<span id="L468"><span class="lineNum">     468</span> <span class="tlaGNC">           3 :       retryMaxDelayMs: retryMaxDelayMs ?? this.retryMaxDelayMs,</span></span>
+<span id="L469"><span class="lineNum">     469</span>              :       retryBackoffMultiplier:</span>
+<span id="L470"><span class="lineNum">     470</span> <span class="tlaGNC">           3 :           retryBackoffMultiplier ?? this.retryBackoffMultiplier,</span></span>
+<span id="L471"><span class="lineNum">     471</span> <span class="tlaGNC">           3 :       summariesQueueSize: summariesQueueSize ?? this.summariesQueueSize,</span></span>
+<span id="L472"><span class="lineNum">     472</span>              :       summariesFlushTimeSeconds:</span>
+<span id="L473"><span class="lineNum">     473</span> <span class="tlaGNC">           3 :           summariesFlushTimeSeconds ?? this.summariesFlushTimeSeconds,</span></span>
+<span id="L474"><span class="lineNum">     474</span>              :       summariesFlushIntervalMs:</span>
+<span id="L475"><span class="lineNum">     475</span> <span class="tlaGNC">           3 :           summariesFlushIntervalMs ?? this.summariesFlushIntervalMs,</span></span>
+<span id="L476"><span class="lineNum">     476</span>              :       sdkSettingsCheckIntervalMs:</span>
+<span id="L477"><span class="lineNum">     477</span> <span class="tlaGNC">           3 :           sdkSettingsCheckIntervalMs ?? this.sdkSettingsCheckIntervalMs,</span></span>
+<span id="L478"><span class="lineNum">     478</span>              :       networkConnectionTimeoutMs:</span>
+<span id="L479"><span class="lineNum">     479</span> <span class="tlaGNC">           3 :           networkConnectionTimeoutMs ?? this.networkConnectionTimeoutMs,</span></span>
+<span id="L480"><span class="lineNum">     480</span> <span class="tlaGNC">           3 :       networkReadTimeoutMs: networkReadTimeoutMs ?? this.networkReadTimeoutMs,</span></span>
+<span id="L481"><span class="lineNum">     481</span> <span class="tlaGNC">           3 :       loggingEnabled: loggingEnabled ?? this.loggingEnabled,</span></span>
+<span id="L482"><span class="lineNum">     482</span> <span class="tlaGNC">           2 :       debugLoggingEnabled: debugLoggingEnabled ?? this.debugLoggingEnabled,</span></span>
+<span id="L483"><span class="lineNum">     483</span> <span class="tlaGNC">           3 :       logLevel: logLevel ?? this.logLevel,</span></span>
+<span id="L484"><span class="lineNum">     484</span> <span class="tlaGNC">           3 :       offlineMode: offlineMode ?? this.offlineMode,</span></span>
+<span id="L485"><span class="lineNum">     485</span>              :       disableBackgroundPolling:</span>
+<span id="L486"><span class="lineNum">     486</span> <span class="tlaGNC">           3 :           disableBackgroundPolling ?? this.disableBackgroundPolling,</span></span>
+<span id="L487"><span class="lineNum">     487</span>              :       backgroundPollingIntervalMs:</span>
+<span id="L488"><span class="lineNum">     488</span> <span class="tlaGNC">           3 :           backgroundPollingIntervalMs ?? this.backgroundPollingIntervalMs,</span></span>
+<span id="L489"><span class="lineNum">     489</span>              :       useReducedPollingWhenBatteryLow: useReducedPollingWhenBatteryLow ??</span>
+<span id="L490"><span class="lineNum">     490</span> <span class="tlaGNC">           3 :           this.useReducedPollingWhenBatteryLow,</span></span>
+<span id="L491"><span class="lineNum">     491</span>              :       reducedPollingIntervalMs:</span>
+<span id="L492"><span class="lineNum">     492</span> <span class="tlaGNC">           3 :           reducedPollingIntervalMs ?? this.reducedPollingIntervalMs,</span></span>
+<span id="L493"><span class="lineNum">     493</span> <span class="tlaGNC">           3 :       maxStoredEvents: maxStoredEvents ?? this.maxStoredEvents,</span></span>
+<span id="L494"><span class="lineNum">     494</span>              :       autoEnvAttributesEnabled:</span>
+<span id="L495"><span class="lineNum">     495</span> <span class="tlaGNC">           3 :           autoEnvAttributesEnabled ?? this.autoEnvAttributesEnabled,</span></span>
+<span id="L496"><span class="lineNum">     496</span> <span class="tlaGNC">           3 :       localStorageEnabled: localStorageEnabled ?? this.localStorageEnabled,</span></span>
+<span id="L497"><span class="lineNum">     497</span>              :       configCacheTtlSeconds:</span>
+<span id="L498"><span class="lineNum">     498</span> <span class="tlaGNC">           3 :           configCacheTtlSeconds ?? this.configCacheTtlSeconds,</span></span>
+<span id="L499"><span class="lineNum">     499</span> <span class="tlaGNC">           3 :       eventCacheTtlSeconds: eventCacheTtlSeconds ?? this.eventCacheTtlSeconds,</span></span>
+<span id="L500"><span class="lineNum">     500</span>              :       summaryCacheTtlSeconds:</span>
+<span id="L501"><span class="lineNum">     501</span> <span class="tlaGNC">           3 :           summaryCacheTtlSeconds ?? this.summaryCacheTtlSeconds,</span></span>
+<span id="L502"><span class="lineNum">     502</span> <span class="tlaGNC">           3 :       maxCacheSizeMb: maxCacheSizeMb ?? this.maxCacheSizeMb,</span></span>
+<span id="L503"><span class="lineNum">     503</span>              :       persistCacheAcrossRestarts:</span>
+<span id="L504"><span class="lineNum">     504</span> <span class="tlaGNC">           3 :           persistCacheAcrossRestarts ?? this.persistCacheAcrossRestarts,</span></span>
+<span id="L505"><span class="lineNum">     505</span>              :       useStaleWhileRevalidate:</span>
+<span id="L506"><span class="lineNum">     506</span> <span class="tlaGNC">           3 :           useStaleWhileRevalidate ?? this.useStaleWhileRevalidate,</span></span>
+<span id="L507"><span class="lineNum">     507</span> <span class="tlaGNC">           3 :       remoteLoggingEnabled: remoteLoggingEnabled ?? this.remoteLoggingEnabled,</span></span>
+<span id="L508"><span class="lineNum">     508</span> <span class="tlaGNC">           3 :       remoteLogProvider: remoteLogProvider ?? this.remoteLogProvider,</span></span>
+<span id="L509"><span class="lineNum">     509</span> <span class="tlaGNC">           3 :       remoteLogEndpoint: remoteLogEndpoint ?? this.remoteLogEndpoint,</span></span>
+<span id="L510"><span class="lineNum">     510</span> <span class="tlaGNC">           3 :       remoteLogApiKey: remoteLogApiKey ?? this.remoteLogApiKey,</span></span>
+<span id="L511"><span class="lineNum">     511</span> <span class="tlaGNC">           3 :       remoteLogLevel: remoteLogLevel ?? this.remoteLogLevel,</span></span>
+<span id="L512"><span class="lineNum">     512</span> <span class="tlaGNC">           3 :       remoteLogBatchSize: remoteLogBatchSize ?? this.remoteLogBatchSize,</span></span>
+<span id="L513"><span class="lineNum">     513</span>              :       remoteLogFlushIntervalMs:</span>
+<span id="L514"><span class="lineNum">     514</span> <span class="tlaGNC">           3 :           remoteLogFlushIntervalMs ?? this.remoteLogFlushIntervalMs,</span></span>
+<span id="L515"><span class="lineNum">     515</span> <span class="tlaGNC">           3 :       remoteLogTimeout: remoteLogTimeout ?? this.remoteLogTimeout,</span></span>
+<span id="L516"><span class="lineNum">     516</span> <span class="tlaGNC">           3 :       remoteLogMetadata: remoteLogMetadata ?? this.remoteLogMetadata,</span></span>
+<span id="L517"><span class="lineNum">     517</span>              :       // Certificate pinning properties</span>
+<span id="L518"><span class="lineNum">     518</span>              :       certificatePinningEnabled:</span>
+<span id="L519"><span class="lineNum">     519</span> <span class="tlaGNC">           3 :           certificatePinningEnabled ?? this.certificatePinningEnabled,</span></span>
+<span id="L520"><span class="lineNum">     520</span> <span class="tlaGNC">           3 :       pinnedCertificates: pinnedCertificates ?? this.pinnedCertificates,</span></span>
+<span id="L521"><span class="lineNum">     521</span>              :       allowSelfSignedCertificates:</span>
+<span id="L522"><span class="lineNum">     522</span> <span class="tlaGNC">           3 :           allowSelfSignedCertificates ?? this.allowSelfSignedCertificates,</span></span>
+<span id="L523"><span class="lineNum">     523</span>              :       // Memory management properties</span>
+<span id="L524"><span class="lineNum">     524</span>              :       enableMemoryManagement:</span>
+<span id="L525"><span class="lineNum">     525</span> <span class="tlaGNC">           3 :           enableMemoryManagement ?? this.enableMemoryManagement,</span></span>
+<span id="L526"><span class="lineNum">     526</span>              :       memoryPressureThresholds:</span>
+<span id="L527"><span class="lineNum">     527</span> <span class="tlaGNC">           3 :           memoryPressureThresholds ?? this.memoryPressureThresholds,</span></span>
+<span id="L528"><span class="lineNum">     528</span>              :       memoryMonitoringIntervalSeconds: memoryMonitoringIntervalSeconds ??</span>
+<span id="L529"><span class="lineNum">     529</span> <span class="tlaGNC">           3 :           this.memoryMonitoringIntervalSeconds,</span></span>
+<span id="L530"><span class="lineNum">     530</span> <span class="tlaGNC">           3 :       useSecureStorage: useSecureStorage ?? this.useSecureStorage,</span></span>
+<span id="L531"><span class="lineNum">     531</span> <span class="tlaGNC">           3 :       secureDataTypes: secureDataTypes ?? this.secureDataTypes,</span></span>
+<span id="L532"><span class="lineNum">     532</span>              :     );</span>
+<span id="L533"><span class="lineNum">     533</span>              :   }</span>
+<span id="L534"><span class="lineNum">     534</span>              : </span>
+<span id="L535"><span class="lineNum">     535</span>              :   /// Simple factory constructor for basic usage (tests)</span>
+<span id="L536"><span class="lineNum">     536</span> <span class="tlaGNC">           1 :   factory CFConfig({</span></span>
+<span id="L537"><span class="lineNum">     537</span>              :     required String clientKey,</span>
+<span id="L538"><span class="lineNum">     538</span>              :   }) =&gt;</span>
+<span id="L539"><span class="lineNum">     539</span> <span class="tlaGNC">           1 :       CFConfig._(clientKey: clientKey);</span></span>
+<span id="L540"><span class="lineNum">     540</span>              : </span>
+<span id="L541"><span class="lineNum">     541</span>              :   /// Static factory method from client key only</span>
+<span id="L542"><span class="lineNum">     542</span> <span class="tlaUNC">           0 :   static CFConfig fromClientKey(String clientKey) =&gt; Builder(clientKey).build();</span></span>
+<span id="L543"><span class="lineNum">     543</span>              : </span>
+<span id="L544"><span class="lineNum">     544</span>              :   /// Builder implementation for fluent API</span>
+<span id="L545"><span class="lineNum">     545</span> <span class="tlaGNC">          56 :   static Builder builder(String clientKey) =&gt; Builder(clientKey);</span></span>
+<span id="L546"><span class="lineNum">     546</span>              : </span>
+<span id="L547"><span class="lineNum">     547</span>              :   /// Create a smart configuration that auto-detects environment and optimizes settings</span>
+<span id="L548"><span class="lineNum">     548</span>              :   ///</span>
+<span id="L549"><span class="lineNum">     549</span>              :   /// This factory method automatically:</span>
+<span id="L550"><span class="lineNum">     550</span>              :   /// - Detects environment from client key</span>
+<span id="L551"><span class="lineNum">     551</span>              :   /// - Applies optimal settings for the detected environment</span>
+<span id="L552"><span class="lineNum">     552</span>              :   /// - Configures performance and battery optimizations</span>
+<span id="L553"><span class="lineNum">     553</span>              :   ///</span>
+<span id="L554"><span class="lineNum">     554</span>              :   /// Example:</span>
+<span id="L555"><span class="lineNum">     555</span>              :   /// ```dart</span>
+<span id="L556"><span class="lineNum">     556</span>              :   /// final config = CFConfig.smart('your-client-key');</span>
+<span id="L557"><span class="lineNum">     557</span>              :   /// ```</span>
+<span id="L558"><span class="lineNum">     558</span> <span class="tlaGNC">           2 :   static CFConfig smart(String clientKey) {</span></span>
+<span id="L559"><span class="lineNum">     559</span> <span class="tlaGNC">           2 :     final detectedEnv = detectEnvironment(clientKey);</span></span>
+<span id="L560"><span class="lineNum">     560</span> <span class="tlaGNC">           4 :     final builder = CFConfig.builder(clientKey).setEnvironment(detectedEnv);</span></span>
+<span id="L561"><span class="lineNum">     561</span>              : </span>
+<span id="L562"><span class="lineNum">     562</span>              :     // Apply environment-specific optimizations</span>
+<span id="L563"><span class="lineNum">     563</span> <span class="tlaGNC">           2 :     if (detectedEnv == CFEnvironment.production) {</span></span>
+<span id="L564"><span class="lineNum">     564</span>              :       return builder</span>
+<span id="L565"><span class="lineNum">     565</span> <span class="tlaGNC">           2 :           .setDebugLoggingEnabled(false)</span></span>
+<span id="L566"><span class="lineNum">     566</span> <span class="tlaGNC">           2 :           .setLoggingEnabled(true)</span></span>
+<span id="L567"><span class="lineNum">     567</span> <span class="tlaGNC">           2 :           .setLogLevel('error')</span></span>
+<span id="L568"><span class="lineNum">     568</span> <span class="tlaGNC">           2 :           .setEventsFlushIntervalMs(30000)</span></span>
+<span id="L569"><span class="lineNum">     569</span> <span class="tlaGNC">           2 :           .setSummariesFlushIntervalMs(30000)</span></span>
+<span id="L570"><span class="lineNum">     570</span> <span class="tlaGNC">           2 :           .setNetworkConnectionTimeoutMs(15000)</span></span>
+<span id="L571"><span class="lineNum">     571</span> <span class="tlaGNC">           2 :           .setNetworkReadTimeoutMs(30000)</span></span>
+<span id="L572"><span class="lineNum">     572</span> <span class="tlaGNC">           2 :           .setMaxRetryAttempts(5)</span></span>
+<span id="L573"><span class="lineNum">     573</span> <span class="tlaGNC">           2 :           .setRetryInitialDelayMs(2000)</span></span>
+<span id="L574"><span class="lineNum">     574</span> <span class="tlaGNC">           2 :           .setSdkSettingsCheckIntervalMs(300000)</span></span>
+<span id="L575"><span class="lineNum">     575</span> <span class="tlaGNC">           2 :           .setLocalStorageEnabled(true)</span></span>
+<span id="L576"><span class="lineNum">     576</span> <span class="tlaGNC">           2 :           .setConfigCacheTtlSeconds(3600)</span></span>
+<span id="L577"><span class="lineNum">     577</span> <span class="tlaGNC">           2 :           .setPersistCacheAcrossRestarts(true)</span></span>
+<span id="L578"><span class="lineNum">     578</span> <span class="tlaGNC">           2 :           .setUseStaleWhileRevalidate(true)</span></span>
+<span id="L579"><span class="lineNum">     579</span> <span class="tlaGNC">           2 :           .setUseReducedPollingWhenBatteryLow(true)</span></span>
+<span id="L580"><span class="lineNum">     580</span> <span class="tlaGNC">           2 :           .build();</span></span>
+<span id="L581"><span class="lineNum">     581</span>              :     } else {</span>
+<span id="L582"><span class="lineNum">     582</span>              :       // Staging/Development optimizations</span>
+<span id="L583"><span class="lineNum">     583</span>              :       return builder</span>
+<span id="L584"><span class="lineNum">     584</span> <span class="tlaGNC">           2 :           .setDebugLoggingEnabled(true)</span></span>
+<span id="L585"><span class="lineNum">     585</span> <span class="tlaGNC">           2 :           .setLoggingEnabled(true)</span></span>
+<span id="L586"><span class="lineNum">     586</span> <span class="tlaGNC">           2 :           .setLogLevel('debug')</span></span>
+<span id="L587"><span class="lineNum">     587</span> <span class="tlaGNC">           2 :           .setEventsFlushIntervalMs(5000)</span></span>
+<span id="L588"><span class="lineNum">     588</span> <span class="tlaGNC">           2 :           .setSummariesFlushIntervalMs(5000)</span></span>
+<span id="L589"><span class="lineNum">     589</span> <span class="tlaGNC">           2 :           .setNetworkConnectionTimeoutMs(10000)</span></span>
+<span id="L590"><span class="lineNum">     590</span> <span class="tlaGNC">           2 :           .setNetworkReadTimeoutMs(15000)</span></span>
+<span id="L591"><span class="lineNum">     591</span> <span class="tlaGNC">           2 :           .setMaxRetryAttempts(3)</span></span>
+<span id="L592"><span class="lineNum">     592</span> <span class="tlaGNC">           2 :           .setRetryInitialDelayMs(1000)</span></span>
+<span id="L593"><span class="lineNum">     593</span> <span class="tlaGNC">           2 :           .setSdkSettingsCheckIntervalMs(60000)</span></span>
+<span id="L594"><span class="lineNum">     594</span> <span class="tlaGNC">           2 :           .setLocalStorageEnabled(true)</span></span>
+<span id="L595"><span class="lineNum">     595</span> <span class="tlaGNC">           2 :           .setConfigCacheTtlSeconds(300)</span></span>
+<span id="L596"><span class="lineNum">     596</span> <span class="tlaGNC">           2 :           .setPersistCacheAcrossRestarts(false)</span></span>
+<span id="L597"><span class="lineNum">     597</span> <span class="tlaGNC">           2 :           .setUseStaleWhileRevalidate(false)</span></span>
+<span id="L598"><span class="lineNum">     598</span> <span class="tlaGNC">           2 :           .build();</span></span>
+<span id="L599"><span class="lineNum">     599</span>              :     }</span>
+<span id="L600"><span class="lineNum">     600</span>              :   }</span>
+<span id="L601"><span class="lineNum">     601</span>              : </span>
+<span id="L602"><span class="lineNum">     602</span>              :   /// Build method creates immutable CFConfig</span>
+<span id="L603"><span class="lineNum">     603</span> <span class="tlaUNC">           0 :   CFConfig build() {</span></span>
+<span id="L604"><span class="lineNum">     604</span> <span class="tlaUNC">           0 :     return CFConfig._(</span></span>
+<span id="L605"><span class="lineNum">     605</span> <span class="tlaUNC">           0 :       clientKey: clientKey,</span></span>
+<span id="L606"><span class="lineNum">     606</span> <span class="tlaUNC">           0 :       environment: environment,</span></span>
+<span id="L607"><span class="lineNum">     607</span> <span class="tlaUNC">           0 :       eventsQueueSize: eventsQueueSize,</span></span>
+<span id="L608"><span class="lineNum">     608</span> <span class="tlaUNC">           0 :       eventsFlushTimeSeconds: eventsFlushTimeSeconds,</span></span>
+<span id="L609"><span class="lineNum">     609</span> <span class="tlaUNC">           0 :       eventsFlushIntervalMs: eventsFlushIntervalMs,</span></span>
+<span id="L610"><span class="lineNum">     610</span> <span class="tlaUNC">           0 :       maxRetryAttempts: maxRetryAttempts,</span></span>
+<span id="L611"><span class="lineNum">     611</span> <span class="tlaUNC">           0 :       retryInitialDelayMs: retryInitialDelayMs,</span></span>
+<span id="L612"><span class="lineNum">     612</span> <span class="tlaUNC">           0 :       retryMaxDelayMs: retryMaxDelayMs,</span></span>
+<span id="L613"><span class="lineNum">     613</span> <span class="tlaUNC">           0 :       retryBackoffMultiplier: retryBackoffMultiplier,</span></span>
+<span id="L614"><span class="lineNum">     614</span> <span class="tlaUNC">           0 :       summariesQueueSize: summariesQueueSize,</span></span>
+<span id="L615"><span class="lineNum">     615</span> <span class="tlaUNC">           0 :       summariesFlushTimeSeconds: summariesFlushTimeSeconds,</span></span>
+<span id="L616"><span class="lineNum">     616</span> <span class="tlaUNC">           0 :       summariesFlushIntervalMs: summariesFlushIntervalMs,</span></span>
+<span id="L617"><span class="lineNum">     617</span> <span class="tlaUNC">           0 :       sdkSettingsCheckIntervalMs: sdkSettingsCheckIntervalMs,</span></span>
+<span id="L618"><span class="lineNum">     618</span> <span class="tlaUNC">           0 :       networkConnectionTimeoutMs: networkConnectionTimeoutMs,</span></span>
+<span id="L619"><span class="lineNum">     619</span> <span class="tlaUNC">           0 :       networkReadTimeoutMs: networkReadTimeoutMs,</span></span>
+<span id="L620"><span class="lineNum">     620</span> <span class="tlaUNC">           0 :       loggingEnabled: loggingEnabled,</span></span>
+<span id="L621"><span class="lineNum">     621</span> <span class="tlaUNC">           0 :       debugLoggingEnabled: debugLoggingEnabled,</span></span>
+<span id="L622"><span class="lineNum">     622</span> <span class="tlaUNC">           0 :       logLevel: logLevel,</span></span>
+<span id="L623"><span class="lineNum">     623</span> <span class="tlaUNC">           0 :       offlineMode: offlineMode,</span></span>
+<span id="L624"><span class="lineNum">     624</span> <span class="tlaUNC">           0 :       disableBackgroundPolling: disableBackgroundPolling,</span></span>
+<span id="L625"><span class="lineNum">     625</span> <span class="tlaUNC">           0 :       backgroundPollingIntervalMs: backgroundPollingIntervalMs,</span></span>
+<span id="L626"><span class="lineNum">     626</span> <span class="tlaUNC">           0 :       useReducedPollingWhenBatteryLow: useReducedPollingWhenBatteryLow,</span></span>
+<span id="L627"><span class="lineNum">     627</span> <span class="tlaUNC">           0 :       reducedPollingIntervalMs: reducedPollingIntervalMs,</span></span>
+<span id="L628"><span class="lineNum">     628</span> <span class="tlaUNC">           0 :       maxStoredEvents: maxStoredEvents,</span></span>
+<span id="L629"><span class="lineNum">     629</span> <span class="tlaUNC">           0 :       autoEnvAttributesEnabled: autoEnvAttributesEnabled,</span></span>
+<span id="L630"><span class="lineNum">     630</span> <span class="tlaUNC">           0 :       localStorageEnabled: localStorageEnabled,</span></span>
+<span id="L631"><span class="lineNum">     631</span> <span class="tlaUNC">           0 :       configCacheTtlSeconds: configCacheTtlSeconds,</span></span>
+<span id="L632"><span class="lineNum">     632</span> <span class="tlaUNC">           0 :       eventCacheTtlSeconds: eventCacheTtlSeconds,</span></span>
+<span id="L633"><span class="lineNum">     633</span> <span class="tlaUNC">           0 :       summaryCacheTtlSeconds: summaryCacheTtlSeconds,</span></span>
+<span id="L634"><span class="lineNum">     634</span> <span class="tlaUNC">           0 :       maxCacheSizeMb: maxCacheSizeMb,</span></span>
+<span id="L635"><span class="lineNum">     635</span> <span class="tlaUNC">           0 :       persistCacheAcrossRestarts: persistCacheAcrossRestarts,</span></span>
+<span id="L636"><span class="lineNum">     636</span> <span class="tlaUNC">           0 :       useStaleWhileRevalidate: useStaleWhileRevalidate,</span></span>
+<span id="L637"><span class="lineNum">     637</span> <span class="tlaUNC">           0 :       remoteLoggingEnabled: remoteLoggingEnabled,</span></span>
+<span id="L638"><span class="lineNum">     638</span> <span class="tlaUNC">           0 :       remoteLogProvider: remoteLogProvider,</span></span>
+<span id="L639"><span class="lineNum">     639</span> <span class="tlaUNC">           0 :       remoteLogEndpoint: remoteLogEndpoint,</span></span>
+<span id="L640"><span class="lineNum">     640</span> <span class="tlaUNC">           0 :       remoteLogApiKey: remoteLogApiKey,</span></span>
+<span id="L641"><span class="lineNum">     641</span> <span class="tlaUNC">           0 :       remoteLogLevel: remoteLogLevel,</span></span>
+<span id="L642"><span class="lineNum">     642</span> <span class="tlaUNC">           0 :       remoteLogBatchSize: remoteLogBatchSize,</span></span>
+<span id="L643"><span class="lineNum">     643</span> <span class="tlaUNC">           0 :       remoteLogFlushIntervalMs: remoteLogFlushIntervalMs,</span></span>
+<span id="L644"><span class="lineNum">     644</span> <span class="tlaUNC">           0 :       remoteLogTimeout: remoteLogTimeout,</span></span>
+<span id="L645"><span class="lineNum">     645</span> <span class="tlaUNC">           0 :       remoteLogMetadata: remoteLogMetadata,</span></span>
+<span id="L646"><span class="lineNum">     646</span> <span class="tlaUNC">           0 :       certificatePinningEnabled: certificatePinningEnabled,</span></span>
+<span id="L647"><span class="lineNum">     647</span> <span class="tlaUNC">           0 :       pinnedCertificates: List.unmodifiable(pinnedCertificates),</span></span>
+<span id="L648"><span class="lineNum">     648</span> <span class="tlaUNC">           0 :       allowSelfSignedCertificates: allowSelfSignedCertificates,</span></span>
+<span id="L649"><span class="lineNum">     649</span> <span class="tlaUNC">           0 :       useSecureStorage: useSecureStorage,</span></span>
+<span id="L650"><span class="lineNum">     650</span> <span class="tlaUNC">           0 :       secureDataTypes: List.unmodifiable(secureDataTypes),</span></span>
+<span id="L651"><span class="lineNum">     651</span>              :     );</span>
+<span id="L652"><span class="lineNum">     652</span>              :   }</span>
+<span id="L653"><span class="lineNum">     653</span>              : }</span>
+<span id="L654"><span class="lineNum">     654</span>              : </span>
+<span id="L655"><span class="lineNum">     655</span>              : /// Builder class for CFConfig</span>
+<span id="L656"><span class="lineNum">     656</span>              : class Builder {</span>
+<span id="L657"><span class="lineNum">     657</span>              :   final String clientKey;</span>
+<span id="L658"><span class="lineNum">     658</span>              :   CFEnvironment environment = CFEnvironment.production;</span>
+<span id="L659"><span class="lineNum">     659</span>              :   int eventsQueueSize = 100;</span>
+<span id="L660"><span class="lineNum">     660</span>              :   int eventsFlushTimeSeconds = 60;</span>
+<span id="L661"><span class="lineNum">     661</span>              :   int eventsFlushIntervalMs = 1000;</span>
+<span id="L662"><span class="lineNum">     662</span>              :   int maxRetryAttempts = 3;</span>
+<span id="L663"><span class="lineNum">     663</span>              :   int retryInitialDelayMs = 1000;</span>
+<span id="L664"><span class="lineNum">     664</span>              :   int retryMaxDelayMs = 30000;</span>
+<span id="L665"><span class="lineNum">     665</span>              :   double retryBackoffMultiplier = 2.0;</span>
+<span id="L666"><span class="lineNum">     666</span>              :   int summariesQueueSize = 100;</span>
+<span id="L667"><span class="lineNum">     667</span>              :   int summariesFlushTimeSeconds = 60;</span>
+<span id="L668"><span class="lineNum">     668</span>              :   int summariesFlushIntervalMs = 60000;</span>
+<span id="L669"><span class="lineNum">     669</span>              :   int sdkSettingsCheckIntervalMs = 300000;</span>
+<span id="L670"><span class="lineNum">     670</span>              :   int networkConnectionTimeoutMs = 10000;</span>
+<span id="L671"><span class="lineNum">     671</span>              :   int networkReadTimeoutMs = 10000;</span>
+<span id="L672"><span class="lineNum">     672</span>              :   bool loggingEnabled = true;</span>
+<span id="L673"><span class="lineNum">     673</span>              :   bool debugLoggingEnabled = false;</span>
+<span id="L674"><span class="lineNum">     674</span>              :   String logLevel = 'DEBUG';</span>
+<span id="L675"><span class="lineNum">     675</span>              :   bool offlineMode = false;</span>
+<span id="L676"><span class="lineNum">     676</span>              :   bool disableBackgroundPolling = false;</span>
+<span id="L677"><span class="lineNum">     677</span>              :   int backgroundPollingIntervalMs = 3600000;</span>
+<span id="L678"><span class="lineNum">     678</span>              :   bool useReducedPollingWhenBatteryLow = true;</span>
+<span id="L679"><span class="lineNum">     679</span>              :   int reducedPollingIntervalMs = 7200000;</span>
+<span id="L680"><span class="lineNum">     680</span>              :   int maxStoredEvents = 100;</span>
+<span id="L681"><span class="lineNum">     681</span>              :   bool autoEnvAttributesEnabled = false;</span>
+<span id="L682"><span class="lineNum">     682</span>              :   // Local Storage Configuration</span>
+<span id="L683"><span class="lineNum">     683</span>              :   bool localStorageEnabled = true;</span>
+<span id="L684"><span class="lineNum">     684</span>              :   int configCacheTtlSeconds = 86400;</span>
+<span id="L685"><span class="lineNum">     685</span>              :   int eventCacheTtlSeconds = 3600;</span>
+<span id="L686"><span class="lineNum">     686</span>              :   int summaryCacheTtlSeconds = 3600;</span>
+<span id="L687"><span class="lineNum">     687</span>              :   int maxCacheSizeMb = 50;</span>
+<span id="L688"><span class="lineNum">     688</span>              :   bool persistCacheAcrossRestarts = true;</span>
+<span id="L689"><span class="lineNum">     689</span>              :   bool useStaleWhileRevalidate = true;</span>
+<span id="L690"><span class="lineNum">     690</span>              :   // Remote logging configuration methods</span>
+<span id="L691"><span class="lineNum">     691</span>              :   bool remoteLoggingEnabled = false;</span>
+<span id="L692"><span class="lineNum">     692</span>              :   String remoteLogProvider = 'console_only';</span>
+<span id="L693"><span class="lineNum">     693</span>              :   String? remoteLogEndpoint;</span>
+<span id="L694"><span class="lineNum">     694</span>              :   String? remoteLogApiKey;</span>
+<span id="L695"><span class="lineNum">     695</span>              :   String remoteLogLevel = 'info';</span>
+<span id="L696"><span class="lineNum">     696</span>              :   int remoteLogBatchSize = 10;</span>
+<span id="L697"><span class="lineNum">     697</span>              :   int remoteLogFlushIntervalMs = 30000;</span>
+<span id="L698"><span class="lineNum">     698</span>              :   int remoteLogTimeout = 5000;</span>
+<span id="L699"><span class="lineNum">     699</span>              :   Map&lt;String, dynamic&gt;? remoteLogMetadata;</span>
+<span id="L700"><span class="lineNum">     700</span>              :   // Certificate pinning configuration</span>
+<span id="L701"><span class="lineNum">     701</span>              :   bool certificatePinningEnabled = false;</span>
+<span id="L702"><span class="lineNum">     702</span>              :   List&lt;String&gt; pinnedCertificates = [];</span>
+<span id="L703"><span class="lineNum">     703</span>              :   bool allowSelfSignedCertificates = false;</span>
+<span id="L704"><span class="lineNum">     704</span>              :   // Secure storage configuration</span>
+<span id="L705"><span class="lineNum">     705</span>              :   bool useSecureStorage = true;</span>
+<span id="L706"><span class="lineNum">     706</span>              :   List&lt;String&gt; secureDataTypes = ['session', 'api_keys', 'sensitive_events'];</span>
+<span id="L707"><span class="lineNum">     707</span>              : </span>
+<span id="L708"><span class="lineNum">     708</span>              :   /// Constructor</span>
+<span id="L709"><span class="lineNum">     709</span> <span class="tlaGNC">          28 :   Builder(this.clientKey) {</span></span>
+<span id="L710"><span class="lineNum">     710</span> <span class="tlaGNC">          56 :     if (clientKey.isEmpty) {</span></span>
+<span id="L711"><span class="lineNum">     711</span> <span class="tlaGNC">           6 :       throw ArgumentError(&quot;Client key cannot be empty&quot;);</span></span>
+<span id="L712"><span class="lineNum">     712</span>              :     }</span>
+<span id="L713"><span class="lineNum">     713</span>              :     // Basic JWT format validation - JWT should have 3 parts separated by dots</span>
+<span id="L714"><span class="lineNum">     714</span> <span class="tlaGNC">          56 :     final parts = clientKey.split('.');</span></span>
+<span id="L715"><span class="lineNum">     715</span> <span class="tlaGNC">          56 :     if (parts.length != 3) {</span></span>
+<span id="L716"><span class="lineNum">     716</span> <span class="tlaGNC">           5 :       throw ArgumentError(&quot;Client key must be a valid JWT token with 3 parts&quot;);</span></span>
+<span id="L717"><span class="lineNum">     717</span>              :     }</span>
+<span id="L718"><span class="lineNum">     718</span>              :     // Minimum length check - typical JWTs are at least 100 characters</span>
+<span id="L719"><span class="lineNum">     719</span> <span class="tlaGNC">          84 :     if (clientKey.length &lt; 100) {</span></span>
+<span id="L720"><span class="lineNum">     720</span> <span class="tlaGNC">           1 :       throw ArgumentError(&quot;Client key appears to be invalid - too short&quot;);</span></span>
+<span id="L721"><span class="lineNum">     721</span>              :     }</span>
+<span id="L722"><span class="lineNum">     722</span>              :   }</span>
+<span id="L723"><span class="lineNum">     723</span>              : </span>
+<span id="L724"><span class="lineNum">     724</span>              :   /// Set environment for API endpoints</span>
+<span id="L725"><span class="lineNum">     725</span> <span class="tlaGNC">           4 :   Builder setEnvironment(CFEnvironment env) {</span></span>
+<span id="L726"><span class="lineNum">     726</span> <span class="tlaGNC">           4 :     environment = env;</span></span>
+<span id="L727"><span class="lineNum">     727</span>              :     return this;</span>
+<span id="L728"><span class="lineNum">     728</span>              :   }</span>
+<span id="L729"><span class="lineNum">     729</span>              : </span>
+<span id="L730"><span class="lineNum">     730</span>              :   /// Set events queue size</span>
+<span id="L731"><span class="lineNum">     731</span> <span class="tlaGNC">           4 :   Builder setEventsQueueSize(int size) {</span></span>
+<span id="L732"><span class="lineNum">     732</span> <span class="tlaGNC">           4 :     if (size &lt;= 0) {</span></span>
+<span id="L733"><span class="lineNum">     733</span> <span class="tlaGNC">           2 :       throw ArgumentError('Events queue size must be greater than 0');</span></span>
+<span id="L734"><span class="lineNum">     734</span>              :     }</span>
+<span id="L735"><span class="lineNum">     735</span> <span class="tlaGNC">           4 :     eventsQueueSize = size;</span></span>
+<span id="L736"><span class="lineNum">     736</span>              :     return this;</span>
+<span id="L737"><span class="lineNum">     737</span>              :   }</span>
+<span id="L738"><span class="lineNum">     738</span>              : </span>
+<span id="L739"><span class="lineNum">     739</span>              :   /// Set events flush time seconds</span>
+<span id="L740"><span class="lineNum">     740</span> <span class="tlaGNC">           2 :   Builder setEventsFlushTimeSeconds(int seconds) {</span></span>
+<span id="L741"><span class="lineNum">     741</span> <span class="tlaGNC">           2 :     if (seconds &lt;= 0) {</span></span>
+<span id="L742"><span class="lineNum">     742</span> <span class="tlaGNC">           2 :       throw ArgumentError('Events flush time seconds must be greater than 0');</span></span>
+<span id="L743"><span class="lineNum">     743</span>              :     }</span>
+<span id="L744"><span class="lineNum">     744</span> <span class="tlaGNC">           1 :     eventsFlushTimeSeconds = seconds;</span></span>
+<span id="L745"><span class="lineNum">     745</span>              :     return this;</span>
+<span id="L746"><span class="lineNum">     746</span>              :   }</span>
+<span id="L747"><span class="lineNum">     747</span>              : </span>
+<span id="L748"><span class="lineNum">     748</span>              :   /// Set events flush interval in milliseconds</span>
+<span id="L749"><span class="lineNum">     749</span> <span class="tlaGNC">          19 :   Builder setEventsFlushIntervalMs(int ms) {</span></span>
+<span id="L750"><span class="lineNum">     750</span> <span class="tlaGNC">          19 :     eventsFlushIntervalMs = ms;</span></span>
+<span id="L751"><span class="lineNum">     751</span>              :     return this;</span>
+<span id="L752"><span class="lineNum">     752</span>              :   }</span>
+<span id="L753"><span class="lineNum">     753</span>              : </span>
+<span id="L754"><span class="lineNum">     754</span>              :   /// Set max retry attempts</span>
+<span id="L755"><span class="lineNum">     755</span> <span class="tlaGNC">           6 :   Builder setMaxRetryAttempts(int attempts) {</span></span>
+<span id="L756"><span class="lineNum">     756</span> <span class="tlaGNC">           6 :     if (attempts &lt; 0) {</span></span>
+<span id="L757"><span class="lineNum">     757</span> <span class="tlaGNC">           3 :       throw ArgumentError('Max retry attempts cannot be negative');</span></span>
+<span id="L758"><span class="lineNum">     758</span>              :     }</span>
+<span id="L759"><span class="lineNum">     759</span> <span class="tlaGNC">           6 :     maxRetryAttempts = attempts;</span></span>
+<span id="L760"><span class="lineNum">     760</span>              :     return this;</span>
+<span id="L761"><span class="lineNum">     761</span>              :   }</span>
+<span id="L762"><span class="lineNum">     762</span>              : </span>
+<span id="L763"><span class="lineNum">     763</span>              :   /// Set retry initial delay in milliseconds</span>
+<span id="L764"><span class="lineNum">     764</span> <span class="tlaGNC">           5 :   Builder setRetryInitialDelayMs(int ms) {</span></span>
+<span id="L765"><span class="lineNum">     765</span> <span class="tlaGNC">           5 :     retryInitialDelayMs = ms;</span></span>
+<span id="L766"><span class="lineNum">     766</span>              :     return this;</span>
+<span id="L767"><span class="lineNum">     767</span>              :   }</span>
+<span id="L768"><span class="lineNum">     768</span>              : </span>
+<span id="L769"><span class="lineNum">     769</span>              :   /// Set retry max delay in milliseconds</span>
+<span id="L770"><span class="lineNum">     770</span> <span class="tlaGNC">           4 :   Builder setRetryMaxDelayMs(int ms) {</span></span>
+<span id="L771"><span class="lineNum">     771</span> <span class="tlaGNC">           4 :     retryMaxDelayMs = ms;</span></span>
+<span id="L772"><span class="lineNum">     772</span>              :     return this;</span>
+<span id="L773"><span class="lineNum">     773</span>              :   }</span>
+<span id="L774"><span class="lineNum">     774</span>              : </span>
+<span id="L775"><span class="lineNum">     775</span>              :   /// Set retry backoff multiplier</span>
+<span id="L776"><span class="lineNum">     776</span> <span class="tlaGNC">           1 :   Builder setRetryBackoffMultiplier(double multiplier) {</span></span>
+<span id="L777"><span class="lineNum">     777</span> <span class="tlaGNC">           1 :     retryBackoffMultiplier = multiplier;</span></span>
+<span id="L778"><span class="lineNum">     778</span>              :     return this;</span>
+<span id="L779"><span class="lineNum">     779</span>              :   }</span>
+<span id="L780"><span class="lineNum">     780</span>              : </span>
+<span id="L781"><span class="lineNum">     781</span>              :   /// Set summaries queue size</span>
+<span id="L782"><span class="lineNum">     782</span> <span class="tlaGNC">           3 :   Builder setSummariesQueueSize(int size) {</span></span>
+<span id="L783"><span class="lineNum">     783</span> <span class="tlaGNC">           3 :     summariesQueueSize = size;</span></span>
+<span id="L784"><span class="lineNum">     784</span>              :     return this;</span>
+<span id="L785"><span class="lineNum">     785</span>              :   }</span>
+<span id="L786"><span class="lineNum">     786</span>              : </span>
+<span id="L787"><span class="lineNum">     787</span>              :   /// Set summaries flush time seconds</span>
+<span id="L788"><span class="lineNum">     788</span> <span class="tlaGNC">           1 :   Builder setSummariesFlushTimeSeconds(int seconds) {</span></span>
+<span id="L789"><span class="lineNum">     789</span> <span class="tlaGNC">           1 :     summariesFlushTimeSeconds = seconds;</span></span>
+<span id="L790"><span class="lineNum">     790</span>              :     return this;</span>
+<span id="L791"><span class="lineNum">     791</span>              :   }</span>
+<span id="L792"><span class="lineNum">     792</span>              : </span>
+<span id="L793"><span class="lineNum">     793</span>              :   /// Set summaries flush interval in milliseconds</span>
+<span id="L794"><span class="lineNum">     794</span> <span class="tlaGNC">           5 :   Builder setSummariesFlushIntervalMs(int ms) {</span></span>
+<span id="L795"><span class="lineNum">     795</span> <span class="tlaGNC">           5 :     summariesFlushIntervalMs = ms;</span></span>
+<span id="L796"><span class="lineNum">     796</span>              :     return this;</span>
+<span id="L797"><span class="lineNum">     797</span>              :   }</span>
+<span id="L798"><span class="lineNum">     798</span>              : </span>
+<span id="L799"><span class="lineNum">     799</span>              :   /// Set SDK settings check interval in milliseconds</span>
+<span id="L800"><span class="lineNum">     800</span> <span class="tlaGNC">           5 :   Builder setSdkSettingsCheckIntervalMs(int ms) {</span></span>
+<span id="L801"><span class="lineNum">     801</span> <span class="tlaGNC">           5 :     sdkSettingsCheckIntervalMs = ms;</span></span>
+<span id="L802"><span class="lineNum">     802</span>              :     return this;</span>
+<span id="L803"><span class="lineNum">     803</span>              :   }</span>
+<span id="L804"><span class="lineNum">     804</span>              : </span>
+<span id="L805"><span class="lineNum">     805</span>              :   /// Set network connection timeout in milliseconds</span>
+<span id="L806"><span class="lineNum">     806</span> <span class="tlaGNC">          21 :   Builder setNetworkConnectionTimeoutMs(int ms) {</span></span>
+<span id="L807"><span class="lineNum">     807</span> <span class="tlaGNC">          21 :     networkConnectionTimeoutMs = ms;</span></span>
+<span id="L808"><span class="lineNum">     808</span>              :     return this;</span>
+<span id="L809"><span class="lineNum">     809</span>              :   }</span>
+<span id="L810"><span class="lineNum">     810</span>              : </span>
+<span id="L811"><span class="lineNum">     811</span>              :   /// Set network read timeout in milliseconds</span>
+<span id="L812"><span class="lineNum">     812</span> <span class="tlaGNC">           6 :   Builder setNetworkReadTimeoutMs(int ms) {</span></span>
+<span id="L813"><span class="lineNum">     813</span> <span class="tlaGNC">           6 :     networkReadTimeoutMs = ms;</span></span>
+<span id="L814"><span class="lineNum">     814</span>              :     return this;</span>
+<span id="L815"><span class="lineNum">     815</span>              :   }</span>
+<span id="L816"><span class="lineNum">     816</span>              : </span>
+<span id="L817"><span class="lineNum">     817</span>              :   /// Set whether logging is enabled</span>
+<span id="L818"><span class="lineNum">     818</span> <span class="tlaGNC">           5 :   Builder setLoggingEnabled(bool enabled) {</span></span>
+<span id="L819"><span class="lineNum">     819</span> <span class="tlaGNC">           5 :     loggingEnabled = enabled;</span></span>
+<span id="L820"><span class="lineNum">     820</span>              :     return this;</span>
+<span id="L821"><span class="lineNum">     821</span>              :   }</span>
+<span id="L822"><span class="lineNum">     822</span>              : </span>
+<span id="L823"><span class="lineNum">     823</span>              :   /// Set whether debug logging is enabled</span>
+<span id="L824"><span class="lineNum">     824</span> <span class="tlaGNC">          23 :   Builder setDebugLoggingEnabled(bool enabled) {</span></span>
+<span id="L825"><span class="lineNum">     825</span> <span class="tlaGNC">          23 :     debugLoggingEnabled = enabled;</span></span>
+<span id="L826"><span class="lineNum">     826</span>              :     return this;</span>
+<span id="L827"><span class="lineNum">     827</span>              :   }</span>
+<span id="L828"><span class="lineNum">     828</span>              : </span>
+<span id="L829"><span class="lineNum">     829</span>              :   /// Set log level</span>
+<span id="L830"><span class="lineNum">     830</span> <span class="tlaGNC">           4 :   Builder setLogLevel(String level) {</span></span>
+<span id="L831"><span class="lineNum">     831</span> <span class="tlaGNC">           4 :     logLevel = level;</span></span>
+<span id="L832"><span class="lineNum">     832</span>              :     return this;</span>
+<span id="L833"><span class="lineNum">     833</span>              :   }</span>
+<span id="L834"><span class="lineNum">     834</span>              : </span>
+<span id="L835"><span class="lineNum">     835</span>              :   /// Set whether offline mode is enabled</span>
+<span id="L836"><span class="lineNum">     836</span> <span class="tlaGNC">          24 :   Builder setOfflineMode(bool enabled) {</span></span>
+<span id="L837"><span class="lineNum">     837</span> <span class="tlaGNC">          24 :     offlineMode = enabled;</span></span>
+<span id="L838"><span class="lineNum">     838</span>              :     return this;</span>
+<span id="L839"><span class="lineNum">     839</span>              :   }</span>
+<span id="L840"><span class="lineNum">     840</span>              : </span>
+<span id="L841"><span class="lineNum">     841</span>              :   /// Set whether background polling is disabled</span>
+<span id="L842"><span class="lineNum">     842</span> <span class="tlaGNC">           2 :   Builder setDisableBackgroundPolling(bool disabled) {</span></span>
+<span id="L843"><span class="lineNum">     843</span> <span class="tlaGNC">           2 :     disableBackgroundPolling = disabled;</span></span>
+<span id="L844"><span class="lineNum">     844</span>              :     return this;</span>
+<span id="L845"><span class="lineNum">     845</span>              :   }</span>
+<span id="L846"><span class="lineNum">     846</span>              : </span>
+<span id="L847"><span class="lineNum">     847</span>              :   /// Set background polling interval in milliseconds</span>
+<span id="L848"><span class="lineNum">     848</span> <span class="tlaGNC">           3 :   Builder setBackgroundPollingIntervalMs(int ms) {</span></span>
+<span id="L849"><span class="lineNum">     849</span> <span class="tlaGNC">           3 :     backgroundPollingIntervalMs = ms;</span></span>
+<span id="L850"><span class="lineNum">     850</span>              :     return this;</span>
+<span id="L851"><span class="lineNum">     851</span>              :   }</span>
+<span id="L852"><span class="lineNum">     852</span>              : </span>
+<span id="L853"><span class="lineNum">     853</span>              :   /// Set whether to use reduced polling when battery is low</span>
+<span id="L854"><span class="lineNum">     854</span> <span class="tlaGNC">           2 :   Builder setUseReducedPollingWhenBatteryLow(bool use) {</span></span>
+<span id="L855"><span class="lineNum">     855</span> <span class="tlaGNC">           2 :     useReducedPollingWhenBatteryLow = use;</span></span>
+<span id="L856"><span class="lineNum">     856</span>              :     return this;</span>
+<span id="L857"><span class="lineNum">     857</span>              :   }</span>
+<span id="L858"><span class="lineNum">     858</span>              : </span>
+<span id="L859"><span class="lineNum">     859</span>              :   /// Set reduced polling interval in milliseconds</span>
+<span id="L860"><span class="lineNum">     860</span> <span class="tlaGNC">           1 :   Builder setReducedPollingIntervalMs(int ms) {</span></span>
+<span id="L861"><span class="lineNum">     861</span> <span class="tlaGNC">           1 :     reducedPollingIntervalMs = ms;</span></span>
+<span id="L862"><span class="lineNum">     862</span>              :     return this;</span>
+<span id="L863"><span class="lineNum">     863</span>              :   }</span>
+<span id="L864"><span class="lineNum">     864</span>              : </span>
+<span id="L865"><span class="lineNum">     865</span>              :   /// Set max stored events</span>
+<span id="L866"><span class="lineNum">     866</span> <span class="tlaGNC">           3 :   Builder setMaxStoredEvents(int max) {</span></span>
+<span id="L867"><span class="lineNum">     867</span> <span class="tlaGNC">           3 :     maxStoredEvents = max;</span></span>
+<span id="L868"><span class="lineNum">     868</span>              :     return this;</span>
+<span id="L869"><span class="lineNum">     869</span>              :   }</span>
+<span id="L870"><span class="lineNum">     870</span>              : </span>
+<span id="L871"><span class="lineNum">     871</span>              :   /// Set whether auto environment attributes are enabled</span>
+<span id="L872"><span class="lineNum">     872</span> <span class="tlaGNC">           5 :   Builder setAutoEnvAttributesEnabled(bool enabled) {</span></span>
+<span id="L873"><span class="lineNum">     873</span> <span class="tlaGNC">           5 :     autoEnvAttributesEnabled = enabled;</span></span>
+<span id="L874"><span class="lineNum">     874</span>              :     return this;</span>
+<span id="L875"><span class="lineNum">     875</span>              :   }</span>
+<span id="L876"><span class="lineNum">     876</span>              : </span>
+<span id="L877"><span class="lineNum">     877</span>              :   // Local Storage Configuration Methods</span>
+<span id="L878"><span class="lineNum">     878</span>              : </span>
+<span id="L879"><span class="lineNum">     879</span>              :   /// Set whether local storage/caching is enabled</span>
+<span id="L880"><span class="lineNum">     880</span> <span class="tlaGNC">           5 :   Builder setLocalStorageEnabled(bool enabled) {</span></span>
+<span id="L881"><span class="lineNum">     881</span> <span class="tlaGNC">           5 :     localStorageEnabled = enabled;</span></span>
+<span id="L882"><span class="lineNum">     882</span>              :     return this;</span>
+<span id="L883"><span class="lineNum">     883</span>              :   }</span>
+<span id="L884"><span class="lineNum">     884</span>              : </span>
+<span id="L885"><span class="lineNum">     885</span>              :   /// Set cache TTL for configuration data in seconds</span>
+<span id="L886"><span class="lineNum">     886</span> <span class="tlaGNC">           5 :   Builder setConfigCacheTtlSeconds(int seconds) {</span></span>
+<span id="L887"><span class="lineNum">     887</span> <span class="tlaGNC">           5 :     if (seconds &lt; 0) {</span></span>
+<span id="L888"><span class="lineNum">     888</span> <span class="tlaGNC">           2 :       throw ArgumentError('Config cache TTL cannot be negative');</span></span>
+<span id="L889"><span class="lineNum">     889</span>              :     }</span>
+<span id="L890"><span class="lineNum">     890</span> <span class="tlaGNC">           5 :     configCacheTtlSeconds = seconds;</span></span>
+<span id="L891"><span class="lineNum">     891</span>              :     return this;</span>
+<span id="L892"><span class="lineNum">     892</span>              :   }</span>
+<span id="L893"><span class="lineNum">     893</span>              : </span>
+<span id="L894"><span class="lineNum">     894</span>              :   /// Set cache TTL for event data in seconds</span>
+<span id="L895"><span class="lineNum">     895</span> <span class="tlaGNC">           2 :   Builder setEventCacheTtlSeconds(int seconds) {</span></span>
+<span id="L896"><span class="lineNum">     896</span> <span class="tlaGNC">           2 :     if (seconds &lt; 0) {</span></span>
+<span id="L897"><span class="lineNum">     897</span> <span class="tlaGNC">           1 :       throw ArgumentError('Event cache TTL cannot be negative');</span></span>
+<span id="L898"><span class="lineNum">     898</span>              :     }</span>
+<span id="L899"><span class="lineNum">     899</span> <span class="tlaGNC">           2 :     eventCacheTtlSeconds = seconds;</span></span>
+<span id="L900"><span class="lineNum">     900</span>              :     return this;</span>
+<span id="L901"><span class="lineNum">     901</span>              :   }</span>
+<span id="L902"><span class="lineNum">     902</span>              : </span>
+<span id="L903"><span class="lineNum">     903</span>              :   /// Set cache TTL for summary data in seconds</span>
+<span id="L904"><span class="lineNum">     904</span> <span class="tlaGNC">           2 :   Builder setSummaryCacheTtlSeconds(int seconds) {</span></span>
+<span id="L905"><span class="lineNum">     905</span> <span class="tlaGNC">           2 :     if (seconds &lt; 0) {</span></span>
+<span id="L906"><span class="lineNum">     906</span> <span class="tlaGNC">           1 :       throw ArgumentError('Summary cache TTL cannot be negative');</span></span>
+<span id="L907"><span class="lineNum">     907</span>              :     }</span>
+<span id="L908"><span class="lineNum">     908</span> <span class="tlaGNC">           2 :     summaryCacheTtlSeconds = seconds;</span></span>
+<span id="L909"><span class="lineNum">     909</span>              :     return this;</span>
+<span id="L910"><span class="lineNum">     910</span>              :   }</span>
+<span id="L911"><span class="lineNum">     911</span>              : </span>
+<span id="L912"><span class="lineNum">     912</span>              :   /// Set maximum cache size in MB</span>
+<span id="L913"><span class="lineNum">     913</span> <span class="tlaGNC">           2 :   Builder setMaxCacheSizeMb(int sizeMb) {</span></span>
+<span id="L914"><span class="lineNum">     914</span> <span class="tlaGNC">           2 :     if (sizeMb &lt;= 0) {</span></span>
+<span id="L915"><span class="lineNum">     915</span> <span class="tlaGNC">           2 :       throw ArgumentError('Max cache size must be greater than 0');</span></span>
+<span id="L916"><span class="lineNum">     916</span>              :     }</span>
+<span id="L917"><span class="lineNum">     917</span> <span class="tlaGNC">           2 :     maxCacheSizeMb = sizeMb;</span></span>
+<span id="L918"><span class="lineNum">     918</span>              :     return this;</span>
+<span id="L919"><span class="lineNum">     919</span>              :   }</span>
+<span id="L920"><span class="lineNum">     920</span>              : </span>
+<span id="L921"><span class="lineNum">     921</span>              :   /// Set whether to persist cache across app restarts</span>
+<span id="L922"><span class="lineNum">     922</span> <span class="tlaGNC">           5 :   Builder setPersistCacheAcrossRestarts(bool persist) {</span></span>
+<span id="L923"><span class="lineNum">     923</span> <span class="tlaGNC">           5 :     persistCacheAcrossRestarts = persist;</span></span>
+<span id="L924"><span class="lineNum">     924</span>              :     return this;</span>
+<span id="L925"><span class="lineNum">     925</span>              :   }</span>
+<span id="L926"><span class="lineNum">     926</span>              : </span>
+<span id="L927"><span class="lineNum">     927</span>              :   /// Set whether to use stale cache while revalidating</span>
+<span id="L928"><span class="lineNum">     928</span> <span class="tlaGNC">           5 :   Builder setUseStaleWhileRevalidate(bool useStale) {</span></span>
+<span id="L929"><span class="lineNum">     929</span> <span class="tlaGNC">           5 :     useStaleWhileRevalidate = useStale;</span></span>
+<span id="L930"><span class="lineNum">     930</span>              :     return this;</span>
+<span id="L931"><span class="lineNum">     931</span>              :   }</span>
+<span id="L932"><span class="lineNum">     932</span>              : </span>
+<span id="L933"><span class="lineNum">     933</span>              :   // Remote logging configuration methods</span>
+<span id="L934"><span class="lineNum">     934</span>              : </span>
+<span id="L935"><span class="lineNum">     935</span>              :   /// Set whether remote logging is enabled</span>
+<span id="L936"><span class="lineNum">     936</span> <span class="tlaGNC">           3 :   Builder setRemoteLoggingEnabled(bool enabled) {</span></span>
+<span id="L937"><span class="lineNum">     937</span> <span class="tlaGNC">           3 :     remoteLoggingEnabled = enabled;</span></span>
+<span id="L938"><span class="lineNum">     938</span>              :     return this;</span>
+<span id="L939"><span class="lineNum">     939</span>              :   }</span>
+<span id="L940"><span class="lineNum">     940</span>              : </span>
+<span id="L941"><span class="lineNum">     941</span>              :   /// Set remote log provider</span>
+<span id="L942"><span class="lineNum">     942</span> <span class="tlaGNC">           3 :   Builder setRemoteLogProvider(String provider) {</span></span>
+<span id="L943"><span class="lineNum">     943</span> <span class="tlaGNC">           6 :     if (!['logtail', 'custom', 'console_only'].contains(provider)) {</span></span>
+<span id="L944"><span class="lineNum">     944</span> <span class="tlaGNC">           2 :       throw ArgumentError(</span></span>
+<span id="L945"><span class="lineNum">     945</span>              :           'Remote log provider must be one of: logtail, custom, console_only');</span>
+<span id="L946"><span class="lineNum">     946</span>              :     }</span>
+<span id="L947"><span class="lineNum">     947</span> <span class="tlaGNC">           3 :     remoteLogProvider = provider;</span></span>
+<span id="L948"><span class="lineNum">     948</span>              :     return this;</span>
+<span id="L949"><span class="lineNum">     949</span>              :   }</span>
+<span id="L950"><span class="lineNum">     950</span>              : </span>
+<span id="L951"><span class="lineNum">     951</span>              :   /// Set remote log endpoint</span>
+<span id="L952"><span class="lineNum">     952</span> <span class="tlaGNC">           3 :   Builder setRemoteLogEndpoint(String? endpoint) {</span></span>
+<span id="L953"><span class="lineNum">     953</span> <span class="tlaGNC">           3 :     remoteLogEndpoint = endpoint;</span></span>
+<span id="L954"><span class="lineNum">     954</span>              :     return this;</span>
+<span id="L955"><span class="lineNum">     955</span>              :   }</span>
+<span id="L956"><span class="lineNum">     956</span>              : </span>
+<span id="L957"><span class="lineNum">     957</span>              :   /// Set remote log API key</span>
+<span id="L958"><span class="lineNum">     958</span> <span class="tlaGNC">           2 :   Builder setRemoteLogApiKey(String? apiKey) {</span></span>
+<span id="L959"><span class="lineNum">     959</span> <span class="tlaGNC">           2 :     remoteLogApiKey = apiKey;</span></span>
+<span id="L960"><span class="lineNum">     960</span>              :     return this;</span>
+<span id="L961"><span class="lineNum">     961</span>              :   }</span>
+<span id="L962"><span class="lineNum">     962</span>              : </span>
+<span id="L963"><span class="lineNum">     963</span>              :   /// Set remote log level</span>
+<span id="L964"><span class="lineNum">     964</span> <span class="tlaGNC">           3 :   Builder setRemoteLogLevel(String level) {</span></span>
+<span id="L965"><span class="lineNum">     965</span> <span class="tlaGNC">           6 :     if (!['debug', 'info', 'warn', 'error'].contains(level)) {</span></span>
+<span id="L966"><span class="lineNum">     966</span> <span class="tlaGNC">           2 :       throw ArgumentError(</span></span>
+<span id="L967"><span class="lineNum">     967</span>              :           'Remote log level must be one of: debug, info, warn, error');</span>
+<span id="L968"><span class="lineNum">     968</span>              :     }</span>
+<span id="L969"><span class="lineNum">     969</span> <span class="tlaGNC">           3 :     remoteLogLevel = level;</span></span>
+<span id="L970"><span class="lineNum">     970</span>              :     return this;</span>
+<span id="L971"><span class="lineNum">     971</span>              :   }</span>
+<span id="L972"><span class="lineNum">     972</span>              : </span>
+<span id="L973"><span class="lineNum">     973</span>              :   /// Set remote log batch size</span>
+<span id="L974"><span class="lineNum">     974</span> <span class="tlaGNC">           3 :   Builder setRemoteLogBatchSize(int size) {</span></span>
+<span id="L975"><span class="lineNum">     975</span> <span class="tlaGNC">           3 :     if (size &lt;= 0) {</span></span>
+<span id="L976"><span class="lineNum">     976</span> <span class="tlaGNC">           1 :       throw ArgumentError('Remote log batch size must be greater than 0');</span></span>
+<span id="L977"><span class="lineNum">     977</span>              :     }</span>
+<span id="L978"><span class="lineNum">     978</span> <span class="tlaGNC">           2 :     remoteLogBatchSize = size;</span></span>
+<span id="L979"><span class="lineNum">     979</span>              :     return this;</span>
+<span id="L980"><span class="lineNum">     980</span>              :   }</span>
+<span id="L981"><span class="lineNum">     981</span>              : </span>
+<span id="L982"><span class="lineNum">     982</span>              :   /// Set remote log flush interval in milliseconds</span>
+<span id="L983"><span class="lineNum">     983</span> <span class="tlaGNC">           3 :   Builder setRemoteLogFlushIntervalMs(int ms) {</span></span>
+<span id="L984"><span class="lineNum">     984</span> <span class="tlaGNC">           3 :     if (ms &lt;= 0) {</span></span>
+<span id="L985"><span class="lineNum">     985</span> <span class="tlaGNC">           1 :       throw ArgumentError('Remote log flush interval must be greater than 0');</span></span>
+<span id="L986"><span class="lineNum">     986</span>              :     }</span>
+<span id="L987"><span class="lineNum">     987</span> <span class="tlaGNC">           2 :     remoteLogFlushIntervalMs = ms;</span></span>
+<span id="L988"><span class="lineNum">     988</span>              :     return this;</span>
+<span id="L989"><span class="lineNum">     989</span>              :   }</span>
+<span id="L990"><span class="lineNum">     990</span>              : </span>
+<span id="L991"><span class="lineNum">     991</span>              :   /// Set remote log timeout</span>
+<span id="L992"><span class="lineNum">     992</span> <span class="tlaGNC">           2 :   Builder setRemoteLogTimeout(int timeout) {</span></span>
+<span id="L993"><span class="lineNum">     993</span> <span class="tlaGNC">           2 :     if (timeout &lt;= 0) {</span></span>
+<span id="L994"><span class="lineNum">     994</span> <span class="tlaGNC">           1 :       throw ArgumentError('Remote log timeout must be greater than 0');</span></span>
+<span id="L995"><span class="lineNum">     995</span>              :     }</span>
+<span id="L996"><span class="lineNum">     996</span> <span class="tlaGNC">           1 :     remoteLogTimeout = timeout;</span></span>
+<span id="L997"><span class="lineNum">     997</span>              :     return this;</span>
+<span id="L998"><span class="lineNum">     998</span>              :   }</span>
+<span id="L999"><span class="lineNum">     999</span>              : </span>
+<span id="L1000"><span class="lineNum">    1000</span>              :   /// Set remote log metadata</span>
+<span id="L1001"><span class="lineNum">    1001</span> <span class="tlaGNC">           2 :   Builder setRemoteLogMetadata(Map&lt;String, dynamic&gt;? metadata) {</span></span>
+<span id="L1002"><span class="lineNum">    1002</span> <span class="tlaGNC">           2 :     remoteLogMetadata = metadata;</span></span>
+<span id="L1003"><span class="lineNum">    1003</span>              :     return this;</span>
+<span id="L1004"><span class="lineNum">    1004</span>              :   }</span>
+<span id="L1005"><span class="lineNum">    1005</span>              : </span>
+<span id="L1006"><span class="lineNum">    1006</span>              :   // Certificate pinning configuration methods</span>
+<span id="L1007"><span class="lineNum">    1007</span>              : </span>
+<span id="L1008"><span class="lineNum">    1008</span>              :   /// Enable or disable certificate pinning</span>
+<span id="L1009"><span class="lineNum">    1009</span> <span class="tlaGNC">           2 :   Builder setCertificatePinningEnabled(bool enabled) {</span></span>
+<span id="L1010"><span class="lineNum">    1010</span> <span class="tlaGNC">           2 :     certificatePinningEnabled = enabled;</span></span>
+<span id="L1011"><span class="lineNum">    1011</span>              :     return this;</span>
+<span id="L1012"><span class="lineNum">    1012</span>              :   }</span>
+<span id="L1013"><span class="lineNum">    1013</span>              : </span>
+<span id="L1014"><span class="lineNum">    1014</span>              :   /// Set the list of pinned certificate SHA-256 fingerprints</span>
+<span id="L1015"><span class="lineNum">    1015</span>              :   /// </span>
+<span id="L1016"><span class="lineNum">    1016</span>              :   /// Example:</span>
+<span id="L1017"><span class="lineNum">    1017</span>              :   /// ```dart</span>
+<span id="L1018"><span class="lineNum">    1018</span>              :   /// .setPinnedCertificates([</span>
+<span id="L1019"><span class="lineNum">    1019</span>              :   ///   'sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',</span>
+<span id="L1020"><span class="lineNum">    1020</span>              :   ///   'sha256/BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB='</span>
+<span id="L1021"><span class="lineNum">    1021</span>              :   /// ])</span>
+<span id="L1022"><span class="lineNum">    1022</span>              :   /// ```</span>
+<span id="L1023"><span class="lineNum">    1023</span> <span class="tlaGNC">           2 :   Builder setPinnedCertificates(List&lt;String&gt; certificates) {</span></span>
+<span id="L1024"><span class="lineNum">    1024</span> <span class="tlaGNC">           4 :     pinnedCertificates = List.from(certificates);</span></span>
+<span id="L1025"><span class="lineNum">    1025</span>              :     return this;</span>
+<span id="L1026"><span class="lineNum">    1026</span>              :   }</span>
+<span id="L1027"><span class="lineNum">    1027</span>              : </span>
+<span id="L1028"><span class="lineNum">    1028</span>              :   /// Add a single pinned certificate SHA-256 fingerprint</span>
+<span id="L1029"><span class="lineNum">    1029</span> <span class="tlaGNC">           1 :   Builder addPinnedCertificate(String certificate) {</span></span>
+<span id="L1030"><span class="lineNum">    1030</span> <span class="tlaGNC">           2 :     if (!pinnedCertificates.contains(certificate)) {</span></span>
+<span id="L1031"><span class="lineNum">    1031</span> <span class="tlaGNC">           2 :       pinnedCertificates.add(certificate);</span></span>
+<span id="L1032"><span class="lineNum">    1032</span>              :     }</span>
+<span id="L1033"><span class="lineNum">    1033</span>              :     return this;</span>
+<span id="L1034"><span class="lineNum">    1034</span>              :   }</span>
+<span id="L1035"><span class="lineNum">    1035</span>              : </span>
+<span id="L1036"><span class="lineNum">    1036</span>              :   /// Allow self-signed certificates (for development only)</span>
+<span id="L1037"><span class="lineNum">    1037</span> <span class="tlaGNC">           2 :   Builder setAllowSelfSignedCertificates(bool allow) {</span></span>
+<span id="L1038"><span class="lineNum">    1038</span> <span class="tlaGNC">           2 :     allowSelfSignedCertificates = allow;</span></span>
+<span id="L1039"><span class="lineNum">    1039</span>              :     return this;</span>
+<span id="L1040"><span class="lineNum">    1040</span>              :   }</span>
+<span id="L1041"><span class="lineNum">    1041</span>              :   </span>
+<span id="L1042"><span class="lineNum">    1042</span>              :   /// Enable or disable secure storage for sensitive data</span>
+<span id="L1043"><span class="lineNum">    1043</span> <span class="tlaUNC">           0 :   Builder setUseSecureStorage(bool enabled) {</span></span>
+<span id="L1044"><span class="lineNum">    1044</span> <span class="tlaUNC">           0 :     useSecureStorage = enabled;</span></span>
+<span id="L1045"><span class="lineNum">    1045</span>              :     return this;</span>
+<span id="L1046"><span class="lineNum">    1046</span>              :   }</span>
+<span id="L1047"><span class="lineNum">    1047</span>              :   </span>
+<span id="L1048"><span class="lineNum">    1048</span>              :   /// Set which data types should be stored securely</span>
+<span id="L1049"><span class="lineNum">    1049</span> <span class="tlaUNC">           0 :   Builder setSecureDataTypes(List&lt;String&gt; dataTypes) {</span></span>
+<span id="L1050"><span class="lineNum">    1050</span> <span class="tlaUNC">           0 :     secureDataTypes = dataTypes;</span></span>
+<span id="L1051"><span class="lineNum">    1051</span>              :     return this;</span>
+<span id="L1052"><span class="lineNum">    1052</span>              :   }</span>
+<span id="L1053"><span class="lineNum">    1053</span>              :   </span>
+<span id="L1054"><span class="lineNum">    1054</span>              : </span>
+<span id="L1055"><span class="lineNum">    1055</span>              :   /// Build method creates immutable CFConfig</span>
+<span id="L1056"><span class="lineNum">    1056</span> <span class="tlaGNC">          28 :   CFConfig build() {</span></span>
+<span id="L1057"><span class="lineNum">    1057</span> <span class="tlaGNC">          28 :     return CFConfig._(</span></span>
+<span id="L1058"><span class="lineNum">    1058</span> <span class="tlaGNC">          28 :       clientKey: clientKey,</span></span>
+<span id="L1059"><span class="lineNum">    1059</span> <span class="tlaGNC">          28 :       environment: environment,</span></span>
+<span id="L1060"><span class="lineNum">    1060</span> <span class="tlaGNC">          28 :       eventsQueueSize: eventsQueueSize,</span></span>
+<span id="L1061"><span class="lineNum">    1061</span> <span class="tlaGNC">          28 :       eventsFlushTimeSeconds: eventsFlushTimeSeconds,</span></span>
+<span id="L1062"><span class="lineNum">    1062</span> <span class="tlaGNC">          28 :       eventsFlushIntervalMs: eventsFlushIntervalMs,</span></span>
+<span id="L1063"><span class="lineNum">    1063</span> <span class="tlaGNC">          28 :       maxRetryAttempts: maxRetryAttempts,</span></span>
+<span id="L1064"><span class="lineNum">    1064</span> <span class="tlaGNC">          28 :       retryInitialDelayMs: retryInitialDelayMs,</span></span>
+<span id="L1065"><span class="lineNum">    1065</span> <span class="tlaGNC">          28 :       retryMaxDelayMs: retryMaxDelayMs,</span></span>
+<span id="L1066"><span class="lineNum">    1066</span> <span class="tlaGNC">          28 :       retryBackoffMultiplier: retryBackoffMultiplier,</span></span>
+<span id="L1067"><span class="lineNum">    1067</span> <span class="tlaGNC">          28 :       summariesQueueSize: summariesQueueSize,</span></span>
+<span id="L1068"><span class="lineNum">    1068</span> <span class="tlaGNC">          28 :       summariesFlushTimeSeconds: summariesFlushTimeSeconds,</span></span>
+<span id="L1069"><span class="lineNum">    1069</span> <span class="tlaGNC">          28 :       summariesFlushIntervalMs: summariesFlushIntervalMs,</span></span>
+<span id="L1070"><span class="lineNum">    1070</span> <span class="tlaGNC">          28 :       sdkSettingsCheckIntervalMs: sdkSettingsCheckIntervalMs,</span></span>
+<span id="L1071"><span class="lineNum">    1071</span> <span class="tlaGNC">          28 :       networkConnectionTimeoutMs: networkConnectionTimeoutMs,</span></span>
+<span id="L1072"><span class="lineNum">    1072</span> <span class="tlaGNC">          28 :       networkReadTimeoutMs: networkReadTimeoutMs,</span></span>
+<span id="L1073"><span class="lineNum">    1073</span> <span class="tlaGNC">          28 :       loggingEnabled: loggingEnabled,</span></span>
+<span id="L1074"><span class="lineNum">    1074</span> <span class="tlaGNC">          28 :       debugLoggingEnabled: debugLoggingEnabled,</span></span>
+<span id="L1075"><span class="lineNum">    1075</span> <span class="tlaGNC">          28 :       logLevel: logLevel,</span></span>
+<span id="L1076"><span class="lineNum">    1076</span> <span class="tlaGNC">          28 :       offlineMode: offlineMode,</span></span>
+<span id="L1077"><span class="lineNum">    1077</span> <span class="tlaGNC">          28 :       disableBackgroundPolling: disableBackgroundPolling,</span></span>
+<span id="L1078"><span class="lineNum">    1078</span> <span class="tlaGNC">          28 :       backgroundPollingIntervalMs: backgroundPollingIntervalMs,</span></span>
+<span id="L1079"><span class="lineNum">    1079</span> <span class="tlaGNC">          28 :       useReducedPollingWhenBatteryLow: useReducedPollingWhenBatteryLow,</span></span>
+<span id="L1080"><span class="lineNum">    1080</span> <span class="tlaGNC">          28 :       reducedPollingIntervalMs: reducedPollingIntervalMs,</span></span>
+<span id="L1081"><span class="lineNum">    1081</span> <span class="tlaGNC">          28 :       maxStoredEvents: maxStoredEvents,</span></span>
+<span id="L1082"><span class="lineNum">    1082</span> <span class="tlaGNC">          28 :       autoEnvAttributesEnabled: autoEnvAttributesEnabled,</span></span>
+<span id="L1083"><span class="lineNum">    1083</span> <span class="tlaGNC">          28 :       localStorageEnabled: localStorageEnabled,</span></span>
+<span id="L1084"><span class="lineNum">    1084</span> <span class="tlaGNC">          28 :       configCacheTtlSeconds: configCacheTtlSeconds,</span></span>
+<span id="L1085"><span class="lineNum">    1085</span> <span class="tlaGNC">          28 :       eventCacheTtlSeconds: eventCacheTtlSeconds,</span></span>
+<span id="L1086"><span class="lineNum">    1086</span> <span class="tlaGNC">          28 :       summaryCacheTtlSeconds: summaryCacheTtlSeconds,</span></span>
+<span id="L1087"><span class="lineNum">    1087</span> <span class="tlaGNC">          28 :       maxCacheSizeMb: maxCacheSizeMb,</span></span>
+<span id="L1088"><span class="lineNum">    1088</span> <span class="tlaGNC">          28 :       persistCacheAcrossRestarts: persistCacheAcrossRestarts,</span></span>
+<span id="L1089"><span class="lineNum">    1089</span> <span class="tlaGNC">          28 :       useStaleWhileRevalidate: useStaleWhileRevalidate,</span></span>
+<span id="L1090"><span class="lineNum">    1090</span> <span class="tlaGNC">          28 :       remoteLoggingEnabled: remoteLoggingEnabled,</span></span>
+<span id="L1091"><span class="lineNum">    1091</span> <span class="tlaGNC">          28 :       remoteLogProvider: remoteLogProvider,</span></span>
+<span id="L1092"><span class="lineNum">    1092</span> <span class="tlaGNC">          28 :       remoteLogEndpoint: remoteLogEndpoint,</span></span>
+<span id="L1093"><span class="lineNum">    1093</span> <span class="tlaGNC">          28 :       remoteLogApiKey: remoteLogApiKey,</span></span>
+<span id="L1094"><span class="lineNum">    1094</span> <span class="tlaGNC">          28 :       remoteLogLevel: remoteLogLevel,</span></span>
+<span id="L1095"><span class="lineNum">    1095</span> <span class="tlaGNC">          28 :       remoteLogBatchSize: remoteLogBatchSize,</span></span>
+<span id="L1096"><span class="lineNum">    1096</span> <span class="tlaGNC">          28 :       remoteLogFlushIntervalMs: remoteLogFlushIntervalMs,</span></span>
+<span id="L1097"><span class="lineNum">    1097</span> <span class="tlaGNC">          28 :       remoteLogTimeout: remoteLogTimeout,</span></span>
+<span id="L1098"><span class="lineNum">    1098</span> <span class="tlaGNC">          28 :       remoteLogMetadata: remoteLogMetadata,</span></span>
+<span id="L1099"><span class="lineNum">    1099</span> <span class="tlaGNC">          28 :       certificatePinningEnabled: certificatePinningEnabled,</span></span>
+<span id="L1100"><span class="lineNum">    1100</span> <span class="tlaGNC">          56 :       pinnedCertificates: List.unmodifiable(pinnedCertificates),</span></span>
+<span id="L1101"><span class="lineNum">    1101</span> <span class="tlaGNC">          28 :       allowSelfSignedCertificates: allowSelfSignedCertificates,</span></span>
+<span id="L1102"><span class="lineNum">    1102</span> <span class="tlaGNC">          28 :       useSecureStorage: useSecureStorage,</span></span>
+<span id="L1103"><span class="lineNum">    1103</span> <span class="tlaGNC">          56 :       secureDataTypes: List.unmodifiable(secureDataTypes),</span></span>
+<span id="L1104"><span class="lineNum">    1104</span>              :     );</span>
+<span id="L1105"><span class="lineNum">    1105</span>              :   }</span>
+<span id="L1106"><span class="lineNum">    1106</span>              : }</span>
+<span id="L1107"><span class="lineNum">    1107</span>              : </span>
+<span id="L1108"><span class="lineNum">    1108</span>              : /// Mutable configuration wrapper for runtime updates</span>
+<span id="L1109"><span class="lineNum">    1109</span>              : class MutableCFConfig {</span>
+<span id="L1110"><span class="lineNum">    1110</span>              :   CFConfig _config;</span>
+<span id="L1111"><span class="lineNum">    1111</span>              :   final List&lt;Function(CFConfig)&gt; _listeners = [];</span>
+<span id="L1112"><span class="lineNum">    1112</span>              : </span>
+<span id="L1113"><span class="lineNum">    1113</span> <span class="tlaGNC">           1 :   MutableCFConfig(this._config);</span></span>
+<span id="L1114"><span class="lineNum">    1114</span>              : </span>
+<span id="L1115"><span class="lineNum">    1115</span>              :   /// Get current immutable config</span>
+<span id="L1116"><span class="lineNum">    1116</span> <span class="tlaGNC">           2 :   CFConfig get config =&gt; _config;</span></span>
+<span id="L1117"><span class="lineNum">    1117</span>              : </span>
+<span id="L1118"><span class="lineNum">    1118</span>              :   /// Add a listener for config changes</span>
+<span id="L1119"><span class="lineNum">    1119</span> <span class="tlaGNC">           1 :   void addListener(Function(CFConfig) listener) {</span></span>
+<span id="L1120"><span class="lineNum">    1120</span> <span class="tlaGNC">           2 :     _listeners.add(listener);</span></span>
+<span id="L1121"><span class="lineNum">    1121</span>              :   }</span>
+<span id="L1122"><span class="lineNum">    1122</span>              : </span>
+<span id="L1123"><span class="lineNum">    1123</span>              :   /// Remove a listener</span>
+<span id="L1124"><span class="lineNum">    1124</span> <span class="tlaGNC">           1 :   void removeListener(Function(CFConfig) listener) {</span></span>
+<span id="L1125"><span class="lineNum">    1125</span> <span class="tlaGNC">           2 :     _listeners.remove(listener);</span></span>
+<span id="L1126"><span class="lineNum">    1126</span>              :   }</span>
+<span id="L1127"><span class="lineNum">    1127</span>              : </span>
+<span id="L1128"><span class="lineNum">    1128</span>              :   /// Update configuration and notify listeners</span>
+<span id="L1129"><span class="lineNum">    1129</span> <span class="tlaGNC">           1 :   void _updateConfig(CFConfig newConfig) {</span></span>
+<span id="L1130"><span class="lineNum">    1130</span> <span class="tlaGNC">           1 :     _config = newConfig;</span></span>
+<span id="L1131"><span class="lineNum">    1131</span> <span class="tlaGNC">           2 :     for (final listener in _listeners) {</span></span>
+<span id="L1132"><span class="lineNum">    1132</span>              :       try {</span>
+<span id="L1133"><span class="lineNum">    1133</span> <span class="tlaGNC">           1 :         listener(newConfig);</span></span>
+<span id="L1134"><span class="lineNum">    1134</span>              :       } catch (e) {</span>
+<span id="L1135"><span class="lineNum">    1135</span>              :         // Log error but continue notifying other listeners</span>
+<span id="L1136"><span class="lineNum">    1136</span> <span class="tlaGNC">           2 :         Logger.e('Error notifying config listener: $e');</span></span>
+<span id="L1137"><span class="lineNum">    1137</span>              :       }</span>
+<span id="L1138"><span class="lineNum">    1138</span>              :     }</span>
+<span id="L1139"><span class="lineNum">    1139</span>              :   }</span>
+<span id="L1140"><span class="lineNum">    1140</span>              : </span>
+<span id="L1141"><span class="lineNum">    1141</span>              :   /// Update SDK settings check interval</span>
+<span id="L1142"><span class="lineNum">    1142</span> <span class="tlaGNC">           1 :   void updateSdkSettingsCheckInterval(int intervalMs) {</span></span>
+<span id="L1143"><span class="lineNum">    1143</span> <span class="tlaGNC">           1 :     if (intervalMs &lt;= 0) {</span></span>
+<span id="L1144"><span class="lineNum">    1144</span> <span class="tlaUNC">           0 :       throw ArgumentError('SDK settings check interval must be greater than 0');</span></span>
+<span id="L1145"><span class="lineNum">    1145</span>              :     }</span>
+<span id="L1146"><span class="lineNum">    1146</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(sdkSettingsCheckIntervalMs: intervalMs));</span></span>
+<span id="L1147"><span class="lineNum">    1147</span>              :   }</span>
+<span id="L1148"><span class="lineNum">    1148</span>              : </span>
+<span id="L1149"><span class="lineNum">    1149</span>              :   /// Update events flush interval</span>
+<span id="L1150"><span class="lineNum">    1150</span> <span class="tlaGNC">           1 :   void updateEventsFlushInterval(int intervalMs) {</span></span>
+<span id="L1151"><span class="lineNum">    1151</span> <span class="tlaGNC">           1 :     if (intervalMs &lt;= 0) {</span></span>
+<span id="L1152"><span class="lineNum">    1152</span> <span class="tlaUNC">           0 :       throw ArgumentError('Events flush interval must be greater than 0');</span></span>
+<span id="L1153"><span class="lineNum">    1153</span>              :     }</span>
+<span id="L1154"><span class="lineNum">    1154</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(eventsFlushIntervalMs: intervalMs));</span></span>
+<span id="L1155"><span class="lineNum">    1155</span>              :   }</span>
+<span id="L1156"><span class="lineNum">    1156</span>              : </span>
+<span id="L1157"><span class="lineNum">    1157</span>              :   /// Update summaries flush interval</span>
+<span id="L1158"><span class="lineNum">    1158</span> <span class="tlaGNC">           1 :   void updateSummariesFlushInterval(int intervalMs) {</span></span>
+<span id="L1159"><span class="lineNum">    1159</span> <span class="tlaGNC">           1 :     if (intervalMs &lt;= 0) {</span></span>
+<span id="L1160"><span class="lineNum">    1160</span> <span class="tlaUNC">           0 :       throw ArgumentError('Summaries flush interval must be greater than 0');</span></span>
+<span id="L1161"><span class="lineNum">    1161</span>              :     }</span>
+<span id="L1162"><span class="lineNum">    1162</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(summariesFlushIntervalMs: intervalMs));</span></span>
+<span id="L1163"><span class="lineNum">    1163</span>              :   }</span>
+<span id="L1164"><span class="lineNum">    1164</span>              : </span>
+<span id="L1165"><span class="lineNum">    1165</span>              :   /// Update network connection timeout</span>
+<span id="L1166"><span class="lineNum">    1166</span> <span class="tlaGNC">           1 :   void updateNetworkConnectionTimeout(int timeoutMs) {</span></span>
+<span id="L1167"><span class="lineNum">    1167</span> <span class="tlaGNC">           1 :     if (timeoutMs &lt;= 0) {</span></span>
+<span id="L1168"><span class="lineNum">    1168</span> <span class="tlaUNC">           0 :       throw ArgumentError('Network connection timeout must be greater than 0');</span></span>
+<span id="L1169"><span class="lineNum">    1169</span>              :     }</span>
+<span id="L1170"><span class="lineNum">    1170</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(networkConnectionTimeoutMs: timeoutMs));</span></span>
+<span id="L1171"><span class="lineNum">    1171</span>              :   }</span>
+<span id="L1172"><span class="lineNum">    1172</span>              : </span>
+<span id="L1173"><span class="lineNum">    1173</span>              :   /// Update network read timeout</span>
+<span id="L1174"><span class="lineNum">    1174</span> <span class="tlaGNC">           1 :   void updateNetworkReadTimeout(int timeoutMs) {</span></span>
+<span id="L1175"><span class="lineNum">    1175</span> <span class="tlaGNC">           1 :     if (timeoutMs &lt;= 0) {</span></span>
+<span id="L1176"><span class="lineNum">    1176</span> <span class="tlaUNC">           0 :       throw ArgumentError('Network read timeout must be greater than 0');</span></span>
+<span id="L1177"><span class="lineNum">    1177</span>              :     }</span>
+<span id="L1178"><span class="lineNum">    1178</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(networkReadTimeoutMs: timeoutMs));</span></span>
+<span id="L1179"><span class="lineNum">    1179</span>              :   }</span>
+<span id="L1180"><span class="lineNum">    1180</span>              : </span>
+<span id="L1181"><span class="lineNum">    1181</span>              :   /// Set debug logging enabled</span>
+<span id="L1182"><span class="lineNum">    1182</span> <span class="tlaGNC">           1 :   void setDebugLoggingEnabled(bool enabled) {</span></span>
+<span id="L1183"><span class="lineNum">    1183</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(debugLoggingEnabled: enabled));</span></span>
+<span id="L1184"><span class="lineNum">    1184</span>              :   }</span>
+<span id="L1185"><span class="lineNum">    1185</span>              : </span>
+<span id="L1186"><span class="lineNum">    1186</span>              :   /// Set logging enabled</span>
+<span id="L1187"><span class="lineNum">    1187</span> <span class="tlaGNC">           1 :   void setLoggingEnabled(bool enabled) {</span></span>
+<span id="L1188"><span class="lineNum">    1188</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(loggingEnabled: enabled));</span></span>
+<span id="L1189"><span class="lineNum">    1189</span>              :   }</span>
+<span id="L1190"><span class="lineNum">    1190</span>              : </span>
+<span id="L1191"><span class="lineNum">    1191</span>              :   /// Set offline mode</span>
+<span id="L1192"><span class="lineNum">    1192</span> <span class="tlaGNC">           1 :   void setOfflineMode(bool offline) {</span></span>
+<span id="L1193"><span class="lineNum">    1193</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(offlineMode: offline));</span></span>
+<span id="L1194"><span class="lineNum">    1194</span>              :   }</span>
+<span id="L1195"><span class="lineNum">    1195</span>              : </span>
+<span id="L1196"><span class="lineNum">    1196</span>              :   /// Update local storage settings</span>
+<span id="L1197"><span class="lineNum">    1197</span> <span class="tlaGNC">           1 :   void updateLocalStorageEnabled(bool enabled) {</span></span>
+<span id="L1198"><span class="lineNum">    1198</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(localStorageEnabled: enabled));</span></span>
+<span id="L1199"><span class="lineNum">    1199</span>              :   }</span>
+<span id="L1200"><span class="lineNum">    1200</span>              : </span>
+<span id="L1201"><span class="lineNum">    1201</span>              :   /// Update config cache TTL</span>
+<span id="L1202"><span class="lineNum">    1202</span> <span class="tlaGNC">           1 :   void updateConfigCacheTtl(int seconds) {</span></span>
+<span id="L1203"><span class="lineNum">    1203</span> <span class="tlaGNC">           1 :     if (seconds &lt; 0) {</span></span>
+<span id="L1204"><span class="lineNum">    1204</span> <span class="tlaUNC">           0 :       throw ArgumentError('Config cache TTL cannot be negative');</span></span>
+<span id="L1205"><span class="lineNum">    1205</span>              :     }</span>
+<span id="L1206"><span class="lineNum">    1206</span> <span class="tlaGNC">           3 :     _updateConfig(_config.copyWith(configCacheTtlSeconds: seconds));</span></span>
+<span id="L1207"><span class="lineNum">    1207</span>              :   }</span>
+<span id="L1208"><span class="lineNum">    1208</span>              : }</span>
+<span id="L1209"><span class="lineNum">    1209</span>              : </span>
+<span id="L1210"><span class="lineNum">    1210</span>              : /// JWT parsing utility with caching for performance optimization</span>
+<span id="L1211"><span class="lineNum">    1211</span>              : class _JWTParser {</span>
+<span id="L1212"><span class="lineNum">    1212</span> <span class="tlaGNC">          39 :   static final Map&lt;String, String?&gt; _cache = &lt;String, String?&gt;{};</span></span>
+<span id="L1213"><span class="lineNum">    1213</span>              :   static const int _maxCacheSize = 100;</span>
+<span id="L1214"><span class="lineNum">    1214</span>              : </span>
+<span id="L1215"><span class="lineNum">    1215</span>              :   /// Get dimension ID from JWT token with caching</span>
+<span id="L1216"><span class="lineNum">    1216</span> <span class="tlaGNC">          13 :   static String? getDimensionId(String token) {</span></span>
+<span id="L1217"><span class="lineNum">    1217</span>              :     // Check cache first</span>
+<span id="L1218"><span class="lineNum">    1218</span> <span class="tlaGNC">          26 :     if (_cache.containsKey(token)) {</span></span>
+<span id="L1219"><span class="lineNum">    1219</span> <span class="tlaGNC">          26 :       return _cache[token];</span></span>
+<span id="L1220"><span class="lineNum">    1220</span>              :     }</span>
+<span id="L1221"><span class="lineNum">    1221</span>              : </span>
+<span id="L1222"><span class="lineNum">    1222</span>              :     // Parse JWT</span>
+<span id="L1223"><span class="lineNum">    1223</span> <span class="tlaGNC">          13 :     final dimensionId = _parseJWT(token);</span></span>
+<span id="L1224"><span class="lineNum">    1224</span>              : </span>
+<span id="L1225"><span class="lineNum">    1225</span>              :     // Cache result (with size limit)</span>
+<span id="L1226"><span class="lineNum">    1226</span> <span class="tlaGNC">          39 :     if (_cache.length &gt;= _maxCacheSize) {</span></span>
+<span id="L1227"><span class="lineNum">    1227</span>              :       // Remove oldest entry (simple LRU approximation)</span>
+<span id="L1228"><span class="lineNum">    1228</span> <span class="tlaUNC">           0 :       final firstKey = _cache.keys.first;</span></span>
+<span id="L1229"><span class="lineNum">    1229</span> <span class="tlaUNC">           0 :       _cache.remove(firstKey);</span></span>
+<span id="L1230"><span class="lineNum">    1230</span>              :     }</span>
+<span id="L1231"><span class="lineNum">    1231</span> <span class="tlaGNC">          26 :     _cache[token] = dimensionId;</span></span>
+<span id="L1232"><span class="lineNum">    1232</span>              : </span>
+<span id="L1233"><span class="lineNum">    1233</span>              :     return dimensionId;</span>
+<span id="L1234"><span class="lineNum">    1234</span>              :   }</span>
+<span id="L1235"><span class="lineNum">    1235</span>              : </span>
+<span id="L1236"><span class="lineNum">    1236</span>              :   /// Parse JWT token and extract dimension_id</span>
+<span id="L1237"><span class="lineNum">    1237</span> <span class="tlaGNC">          13 :   static String? _parseJWT(String token) {</span></span>
+<span id="L1238"><span class="lineNum">    1238</span>              :     try {</span>
+<span id="L1239"><span class="lineNum">    1239</span> <span class="tlaGNC">          13 :       final parts = token.split('.');</span></span>
+<span id="L1240"><span class="lineNum">    1240</span> <span class="tlaGNC">          26 :       if (parts.length != 3) return null;</span></span>
+<span id="L1241"><span class="lineNum">    1241</span>              : </span>
+<span id="L1242"><span class="lineNum">    1242</span> <span class="tlaGNC">          13 :       final payload = parts[1];</span></span>
+<span id="L1243"><span class="lineNum">    1243</span> <span class="tlaGNC">          13 :       final normalized = base64Url.normalize(payload);</span></span>
+<span id="L1244"><span class="lineNum">    1244</span> <span class="tlaGNC">          26 :       final decoded = utf8.decode(base64Url.decode(normalized));</span></span>
+<span id="L1245"><span class="lineNum">    1245</span> <span class="tlaGNC">          13 :       final jsonMap = jsonDecode(decoded) as Map&lt;String, dynamic&gt;;</span></span>
+<span id="L1246"><span class="lineNum">    1246</span>              : </span>
+<span id="L1247"><span class="lineNum">    1247</span> <span class="tlaGNC">          13 :       return jsonMap['dimension_id'] as String?;</span></span>
+<span id="L1248"><span class="lineNum">    1248</span>              :     } catch (e) {</span>
+<span id="L1249"><span class="lineNum">    1249</span>              :       return null;</span>
+<span id="L1250"><span class="lineNum">    1250</span>              :     }</span>
+<span id="L1251"><span class="lineNum">    1251</span>              :   }</span>
+<span id="L1252"><span class="lineNum">    1252</span>              : }</span>
+<span id="L1253"><span class="lineNum">    1253</span>              : </span>
+<span id="L1254"><span class="lineNum">    1254</span>              : /// Configuration comparison and analysis utilities</span>
+<span id="L1255"><span class="lineNum">    1255</span>              : class CFConfigAnalyzer {</span>
+<span id="L1256"><span class="lineNum">    1256</span>              :   /// Compare two configurations and highlight differences</span>
+<span id="L1257"><span class="lineNum">    1257</span> <span class="tlaGNC">           1 :   static Map&lt;String, dynamic&gt; compare(CFConfig config1, CFConfig config2) {</span></span>
+<span id="L1258"><span class="lineNum">    1258</span> <span class="tlaGNC">           1 :     final differences = &lt;String, dynamic&gt;{};</span></span>
+<span id="L1259"><span class="lineNum">    1259</span>              : </span>
+<span id="L1260"><span class="lineNum">    1260</span> <span class="tlaGNC">           3 :     if (config1.environment != config2.environment) {</span></span>
+<span id="L1261"><span class="lineNum">    1261</span> <span class="tlaGNC">           2 :       differences['environment'] = {</span></span>
+<span id="L1262"><span class="lineNum">    1262</span> <span class="tlaGNC">           2 :         'config1': config1.environment.toString(),</span></span>
+<span id="L1263"><span class="lineNum">    1263</span> <span class="tlaGNC">           2 :         'config2': config2.environment.toString()</span></span>
+<span id="L1264"><span class="lineNum">    1264</span>              :       };</span>
+<span id="L1265"><span class="lineNum">    1265</span>              :     }</span>
+<span id="L1266"><span class="lineNum">    1266</span>              : </span>
+<span id="L1267"><span class="lineNum">    1267</span> <span class="tlaGNC">           3 :     if (config1.eventsFlushIntervalMs != config2.eventsFlushIntervalMs) {</span></span>
+<span id="L1268"><span class="lineNum">    1268</span> <span class="tlaGNC">           2 :       differences['eventsFlushIntervalMs'] = {</span></span>
+<span id="L1269"><span class="lineNum">    1269</span> <span class="tlaGNC">           1 :         'config1': config1.eventsFlushIntervalMs,</span></span>
+<span id="L1270"><span class="lineNum">    1270</span> <span class="tlaGNC">           1 :         'config2': config2.eventsFlushIntervalMs</span></span>
+<span id="L1271"><span class="lineNum">    1271</span>              :       };</span>
+<span id="L1272"><span class="lineNum">    1272</span>              :     }</span>
+<span id="L1273"><span class="lineNum">    1273</span>              : </span>
+<span id="L1274"><span class="lineNum">    1274</span> <span class="tlaGNC">           3 :     if (config1.debugLoggingEnabled != config2.debugLoggingEnabled) {</span></span>
+<span id="L1275"><span class="lineNum">    1275</span> <span class="tlaGNC">           2 :       differences['debugLoggingEnabled'] = {</span></span>
+<span id="L1276"><span class="lineNum">    1276</span> <span class="tlaGNC">           1 :         'config1': config1.debugLoggingEnabled,</span></span>
+<span id="L1277"><span class="lineNum">    1277</span> <span class="tlaGNC">           1 :         'config2': config2.debugLoggingEnabled</span></span>
+<span id="L1278"><span class="lineNum">    1278</span>              :       };</span>
+<span id="L1279"><span class="lineNum">    1279</span>              :     }</span>
+<span id="L1280"><span class="lineNum">    1280</span>              : </span>
+<span id="L1281"><span class="lineNum">    1281</span> <span class="tlaGNC">           2 :     if (config1.networkConnectionTimeoutMs !=</span></span>
+<span id="L1282"><span class="lineNum">    1282</span> <span class="tlaGNC">           1 :         config2.networkConnectionTimeoutMs) {</span></span>
+<span id="L1283"><span class="lineNum">    1283</span> <span class="tlaGNC">           2 :       differences['networkConnectionTimeoutMs'] = {</span></span>
+<span id="L1284"><span class="lineNum">    1284</span> <span class="tlaGNC">           1 :         'config1': config1.networkConnectionTimeoutMs,</span></span>
+<span id="L1285"><span class="lineNum">    1285</span> <span class="tlaGNC">           1 :         'config2': config2.networkConnectionTimeoutMs</span></span>
+<span id="L1286"><span class="lineNum">    1286</span>              :       };</span>
+<span id="L1287"><span class="lineNum">    1287</span>              :     }</span>
+<span id="L1288"><span class="lineNum">    1288</span>              : </span>
+<span id="L1289"><span class="lineNum">    1289</span>              :     return differences;</span>
+<span id="L1290"><span class="lineNum">    1290</span>              :   }</span>
+<span id="L1291"><span class="lineNum">    1291</span>              : </span>
+<span id="L1292"><span class="lineNum">    1292</span>              :   /// Get configuration fingerprint for change detection</span>
+<span id="L1293"><span class="lineNum">    1293</span> <span class="tlaGNC">           1 :   static String getFingerprint(CFConfig config) {</span></span>
+<span id="L1294"><span class="lineNum">    1294</span>              :     // Create a deterministic string representation</span>
+<span id="L1295"><span class="lineNum">    1295</span> <span class="tlaGNC">           1 :     final parts = [</span></span>
+<span id="L1296"><span class="lineNum">    1296</span> <span class="tlaGNC">           3 :       'env:${config.environment.toString()}',</span></span>
+<span id="L1297"><span class="lineNum">    1297</span> <span class="tlaGNC">           2 :       'events:${config.eventsFlushIntervalMs}',</span></span>
+<span id="L1298"><span class="lineNum">    1298</span> <span class="tlaGNC">           2 :       'timeout:${config.networkConnectionTimeoutMs}',</span></span>
+<span id="L1299"><span class="lineNum">    1299</span> <span class="tlaGNC">           2 :       'debug:${config.debugLoggingEnabled}',</span></span>
+<span id="L1300"><span class="lineNum">    1300</span> <span class="tlaGNC">           2 :       'cache:${config.configCacheTtlSeconds}',</span></span>
+<span id="L1301"><span class="lineNum">    1301</span>              :     ];</span>
+<span id="L1302"><span class="lineNum">    1302</span>              :     // Join parts and create a simple hash that's deterministic</span>
+<span id="L1303"><span class="lineNum">    1303</span> <span class="tlaGNC">           1 :     final combined = parts.join('|');</span></span>
+<span id="L1304"><span class="lineNum">    1304</span>              :     int hash = 0;</span>
+<span id="L1305"><span class="lineNum">    1305</span> <span class="tlaGNC">           3 :     for (int i = 0; i &lt; combined.length; i++) {</span></span>
+<span id="L1306"><span class="lineNum">    1306</span> <span class="tlaGNC">           4 :       hash = ((hash &lt;&lt; 5) - hash) + combined.codeUnitAt(i);</span></span>
+<span id="L1307"><span class="lineNum">    1307</span> <span class="tlaGNC">           1 :       hash = hash &amp; hash; // Convert to 32-bit integer</span></span>
+<span id="L1308"><span class="lineNum">    1308</span>              :     }</span>
+<span id="L1309"><span class="lineNum">    1309</span> <span class="tlaGNC">           2 :     return hash.abs().toString();</span></span>
+<span id="L1310"><span class="lineNum">    1310</span>              :   }</span>
+<span id="L1311"><span class="lineNum">    1311</span>              : </span>
+<span id="L1312"><span class="lineNum">    1312</span>              :   /// Check if configuration is suitable for mobile devices</span>
+<span id="L1313"><span class="lineNum">    1313</span> <span class="tlaGNC">           1 :   static bool isMobileFriendly(CFConfig config) {</span></span>
+<span id="L1314"><span class="lineNum">    1314</span> <span class="tlaGNC">           2 :     return config.eventsFlushIntervalMs &gt;= 5000 &amp;&amp;</span></span>
+<span id="L1315"><span class="lineNum">    1315</span> <span class="tlaGNC">           2 :         config.maxCacheSizeMb &lt;= 100 &amp;&amp;</span></span>
+<span id="L1316"><span class="lineNum">    1316</span> <span class="tlaGNC">           1 :         config.useReducedPollingWhenBatteryLow &amp;&amp;</span></span>
+<span id="L1317"><span class="lineNum">    1317</span> <span class="tlaGNC">           2 :         config.backgroundPollingIntervalMs &gt;= 1800000; // 30 minutes</span></span>
+<span id="L1318"><span class="lineNum">    1318</span>              :   }</span>
+<span id="L1319"><span class="lineNum">    1319</span>              : </span>
+<span id="L1320"><span class="lineNum">    1320</span>              :   /// Get memory footprint estimation in MB</span>
+<span id="L1321"><span class="lineNum">    1321</span> <span class="tlaGNC">           1 :   static double estimateMemoryFootprint(CFConfig config) {</span></span>
+<span id="L1322"><span class="lineNum">    1322</span>              :     double footprint = 0.0;</span>
+<span id="L1323"><span class="lineNum">    1323</span>              : </span>
+<span id="L1324"><span class="lineNum">    1324</span>              :     // Base SDK memory</span>
+<span id="L1325"><span class="lineNum">    1325</span> <span class="tlaGNC">           1 :     footprint += 2.0;</span></span>
+<span id="L1326"><span class="lineNum">    1326</span>              : </span>
+<span id="L1327"><span class="lineNum">    1327</span>              :     // Queue memory estimation</span>
+<span id="L1328"><span class="lineNum">    1328</span> <span class="tlaGNC">           3 :     footprint += (config.eventsQueueSize * 0.001); // 1KB per event</span></span>
+<span id="L1329"><span class="lineNum">    1329</span> <span class="tlaGNC">           3 :     footprint += (config.summariesQueueSize * 0.0005); // 0.5KB per summary</span></span>
+<span id="L1330"><span class="lineNum">    1330</span>              : </span>
+<span id="L1331"><span class="lineNum">    1331</span>              :     // Cache memory</span>
+<span id="L1332"><span class="lineNum">    1332</span> <span class="tlaGNC">           2 :     footprint += config.maxCacheSizeMb;</span></span>
+<span id="L1333"><span class="lineNum">    1333</span>              : </span>
+<span id="L1334"><span class="lineNum">    1334</span>              :     return footprint;</span>
+<span id="L1335"><span class="lineNum">    1335</span>              :   }</span>
+<span id="L1336"><span class="lineNum">    1336</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3.1-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

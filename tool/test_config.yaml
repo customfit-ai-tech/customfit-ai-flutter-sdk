@@ -1,0 +1,160 @@
+# Test configuration for CustomFit Flutter SDK
+# This file configures the test runner scripts
+
+# Test directories to include in test runs
+test_directories:
+  - "test/unit"
+  - "test/stress"
+
+# Tags to exclude from default test runs
+# Use || for OR, && for AND conditions
+exclude_tags: "slow || flaky"
+
+# Coverage configuration
+coverage:
+  # Minimum coverage threshold (percentage)
+  min_threshold: 85.0
+  
+  # Files to exclude from coverage reports
+  exclude_files:
+    - "**/*.g.dart"              # Generated files
+    - "**/*.mocks.dart"          # Mock files
+    - "**/*.freezed.dart"        # Freezed generated files
+    - "test/**"                  # Test files themselves
+    - "lib/src/generated/**"     # Any generated code
+  
+  # HTML report settings
+  html_report:
+    auto_open: false             # Auto-open HTML report in browser
+    port: 8080                   # Port for serving HTML report
+
+# Performance test configuration
+performance:
+  # Directory containing performance tests
+  directory: "test/stress"
+  
+  # Regression threshold in milliseconds
+  # Tests fail if they exceed baseline by this amount
+  regression_threshold_ms: 50
+  
+  # Baseline file for performance comparisons
+  baseline_file: "tool/performance_baseline.json"
+  
+  # Number of warmup runs before measurement
+  warmup_runs: 3
+  
+  # Number of measurement runs
+  measurement_runs: 10
+
+# Benchmark configuration
+benchmarks:
+  # Number of warmup iterations
+  warmup_runs: 5
+  
+  # Number of measurement iterations
+  measurement_runs: 20
+  
+  # Output format (json, csv, both)
+  output_format: "json"
+  
+  # Benchmark results file
+  results_file: "tool/benchmark_results.json"
+  
+  # Operations to benchmark
+  operations:
+    - "client_initialization"
+    - "flag_evaluation"
+    - "event_tracking"
+    - "cache_operations"
+    - "network_requests"
+
+# Unit test configuration
+unit_tests:
+  # Enable parallel test execution
+  parallel: true
+  
+  # Number of concurrent test processes (null = auto-detect based on CPU cores)
+  concurrency: null
+  
+  # Test timeout in seconds
+  timeout: 30
+  
+  # Reporter format (compact, expanded, json)
+  reporter: "expanded"
+  
+  # Enable test randomization
+  randomize: true
+  
+  # Retry failed tests
+  retry_count: 1
+  
+  # Minimum pass rate percentage
+  min_pass_rate: 95.0
+  
+  # Tags to exclude from unit tests
+  exclude_tags: "slow,integration"
+
+# CI/CD configuration
+ci:
+  # Generate JUnit XML reports
+  junit_report: true
+  
+  # Fail fast on first test failure
+  fail_fast: false
+  
+  # Upload coverage to external service
+  coverage_upload:
+    enabled: false
+    service: "codecov"  # codecov, coveralls, etc.
+
+# Module-specific configurations
+modules:
+  analytics:
+    priority: "high"
+    min_coverage: 90.0
+  
+  client:
+    priority: "critical"
+    min_coverage: 95.0
+  
+  core:
+    priority: "critical"
+    min_coverage: 90.0
+  
+  network:
+    priority: "high"
+    min_coverage: 85.0
+  
+  storage:
+    priority: "medium"
+    min_coverage: 80.0
+
+# Test categorization
+test_categories:
+  unit:
+    path_pattern: "test/unit/**/*_test.dart"
+    tags: []
+  
+  stress:
+    path_pattern: "test/stress/**/*_test.dart"
+    tags: ["stress", "performance"]
+  
+  integration:
+    path_pattern: "test/integration/**/*_test.dart"
+    tags: ["integration"]
+
+# Reporting configuration
+reporting:
+  # Console output colors
+  use_colors: true
+  
+  # Verbosity level (quiet, normal, verbose)
+  verbosity: "normal"
+  
+  # Show stack traces for failures
+  show_stack_traces: true
+  
+  # Summary format
+  show_module_summary: true
+  show_test_timing: true
+  show_coverage_summary: true
