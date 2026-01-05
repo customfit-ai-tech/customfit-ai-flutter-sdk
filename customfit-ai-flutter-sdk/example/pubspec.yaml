@@ -1,0 +1,22 @@
+name: customfit_ai_flutter_sdk_example
+description: Example app demonstrating CustomFit.ai Flutter SDK usage
+version: 1.0.0+1
+publish_to: 'none' # Example apps should not be published
+
+environment:
+  sdk: '>=3.2.3 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  customfit_ai_flutter_sdk:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true 
