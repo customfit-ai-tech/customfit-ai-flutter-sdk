@@ -122,7 +122,7 @@ lib/
 
 ```yaml
 dependencies:
-  customfit_ai_flutter_sdk: ^0.1.4
+  customfit_ai_flutter_sdk: ^0.1.5
 ```
 
 ### Install Dependencies
