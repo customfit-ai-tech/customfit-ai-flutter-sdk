@@ -106,9 +106,9 @@ void main() {
       final client = result;
       // Test feature flag evaluation - should use default values since mocked response
       // doesn't have specific flags for this test
-      final boolFlag = client.getBoolean('test_feature', false);
-      final stringFlag = client.getString('test_feature', 'default');
-      final numberFlag = client.getNumber('numeric_feature', 0);
+      final boolFlag = client.getValue<bool>('test_feature', false);
+      final stringFlag = client.getValue<String>('test_feature', 'default');
+      final numberFlag = client.getValue<double>('numeric_feature', 0);
       expect(boolFlag, isA<bool>());
       expect(stringFlag, isA<String>());
       expect(numberFlag, isA<num>());

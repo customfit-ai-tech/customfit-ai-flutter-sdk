@@ -21,7 +21,6 @@ class SecureStorageService {
 
   /// Android-specific options for secure storage
   static const AndroidOptions _androidOptions = AndroidOptions(
-    encryptedSharedPreferences: true,
     sharedPreferencesName: 'cf_secure_prefs',
     preferencesKeyPrefix: 'cf_secure_',
   );

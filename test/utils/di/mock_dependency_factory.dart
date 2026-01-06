@@ -81,7 +81,7 @@ class MockDependencyFactory implements DependencyFactory {
   ConfigFetcher createConfigFetcher(
     HttpClient httpClient,
     CFConfig config,
-    CFUser user,
+    UserManager userManager,
   ) {
     return mockConfigFetcher;
   }

@@ -136,7 +136,7 @@ void main() {
           futures.add(client.trackEvent('concurrent_stress_$i'));
           // Flag evaluations
           futures.add(
-              Future(() => client.getBoolean('concurrent_flag_$i', false)));
+              Future(() => client.getValue<bool>('concurrent_flag_$i', false)));
           // User property updates
           if (i % 10 == 0) {
             futures.add(Future(() async {
@@ -144,7 +144,7 @@ void main() {
               userBuilder.addStringProperty('stress_test', 'true');
               userBuilder.addNumberProperty('iteration', i);
               final user = userBuilder.build();
-              await client.setUser(user);
+              await client.user.setUser(user);
             }));
           }
         }

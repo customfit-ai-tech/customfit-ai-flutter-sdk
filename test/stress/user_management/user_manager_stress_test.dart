@@ -24,7 +24,7 @@ void main() {
         for (int i = 0; i < 1000; i++) {
           largeProps['prop_$i'] = 'value_$i';
         }
-        userManager.addUserProperties(largeProps);
+        userManager.addProperties(largeProps);
         final user = userManager.getUser();
         expect(user.properties.length, greaterThanOrEqualTo(1000));
         expect(user.properties['prop_500'], 'value_500');
@@ -37,7 +37,7 @@ void main() {
           for (int i = 0; i < 100; i++) {
             batchProps['batch_${batch}_prop_$i'] = 'value_${batch}_$i';
           }
-          userManager.addUserProperties(batchProps);
+          userManager.addProperties(batchProps);
         }
         stopwatch.stop();
         expect(stopwatch.elapsedMilliseconds,
@@ -55,7 +55,7 @@ void main() {
           specialKeys['key@with@at@$i'] = 'value$i';
           specialKeys['key with spaces $i'] = 'value$i';
         }
-        userManager.addUserProperties(specialKeys);
+        userManager.addProperties(specialKeys);
         final user = userManager.getUser();
         expect(user.properties['key-with-dash-50'], 'value50');
         expect(user.properties['key_with_underscore_50'], 'value50');
@@ -83,7 +83,7 @@ void main() {
               },
             },
           };
-          userManager.addJsonProperty('deep_$i', deepJson);
+          userManager.addProperty('deep_$i', deepJson);
         }
         final user = userManager.getUser();
         final retrieved = user.properties['deep_50'] as Map<String, dynamic>;
@@ -106,7 +106,7 @@ void main() {
                       'metadata': 'test_data_$index',
                     },
                   });
-          userManager.addJsonProperty('large_array_$i', {'items': largeArray});
+          userManager.addProperty('large_array_$i', {'items': largeArray});
         }
         final user = userManager.getUser();
         final map = user.properties['large_array_25'] as Map;
@@ -121,9 +121,9 @@ void main() {
         final futures = <Future>[];
         for (int i = 0; i < 100; i++) {
           futures.add(Future(() {
-            userManager.addStringProperty('concurrent_string_$i', 'value_$i');
-            userManager.addNumberProperty('concurrent_number_$i', i.toDouble());
-            userManager.addBooleanProperty('concurrent_bool_$i', true);
+            userManager.addProperty('concurrent_string_$i', 'value_$i');
+            userManager.addProperty('concurrent_number_$i', i.toDouble());
+            userManager.addProperty('concurrent_bool_$i', true);
           }));
         }
         await Future.wait(futures);
@@ -149,7 +149,7 @@ void main() {
           userManager.addUserChangeListener(listener);
         }
         // Trigger notifications
-        userManager.addStringProperty('trigger', 'notification');
+        userManager.addProperty('trigger', 'notification');
         // Should handle concurrent modifications without issues
         expect(listeners.length, greaterThan(50));
       });
@@ -158,8 +158,8 @@ void main() {
       test('should handle memory pressure from large user data', () {
         // Create very large user properties
         for (int i = 0; i < 100; i++) {
-          userManager.addStringProperty('huge_prop_$i', 'x' * 1000);
-          userManager.addJsonProperty('large_json_$i', {
+          userManager.addProperty('huge_prop_$i', 'x' * 1000);
+          userManager.addProperty('large_json_$i', {
             'data': List.generate(100, (j) => 'item_$j'),
             'metadata': Map.fromEntries(
                 List.generate(50, (k) => MapEntry('key_$k', 'value_$k'))),
@@ -168,7 +168,7 @@ void main() {
         final user = userManager.getUser();
         expect(user.properties.length, greaterThanOrEqualTo(200));
         // Should still be able to add more properties
-        userManager.addStringProperty('final_test', 'success');
+        userManager.addProperty('final_test', 'success');
         expect(userManager.getUser().properties['final_test'], 'success');
       });
       test('should handle rapid user updates under stress', () {

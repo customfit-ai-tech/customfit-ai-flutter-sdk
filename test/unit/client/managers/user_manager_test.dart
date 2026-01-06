@@ -66,17 +66,17 @@ void main() {
     });
     group('Basic Property Management', () {
       test('should add string property', () {
-        userManager.addStringProperty('theme', 'dark').getOrThrow();
+        userManager.addProperty('theme', 'dark').getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['theme'], 'dark');
       });
       test('should add number property', () {
-        userManager.addNumberProperty('age', 25).getOrThrow();
+        userManager.addProperty('age', 25).getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['age'], 25);
       });
       test('should add boolean property', () {
-        userManager.addBooleanProperty('isVip', true).getOrThrow();
+        userManager.addProperty('isVip', true).getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['isVip'], true);
       });
@@ -86,12 +86,12 @@ void main() {
           'points': 1500,
           'badges': ['early_adopter', 'contributor'],
         };
-        userManager.addJsonProperty('profile', jsonData).getOrThrow();
+        userManager.addProperty('profile', jsonData).getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['profile'], jsonData);
       });
       test('should add generic property', () {
-        userManager.addUserProperty('customProp', 'customValue').getOrThrow();
+        userManager.addProperty('customProp', 'customValue').getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['customProp'], 'customValue');
       });
@@ -104,7 +104,7 @@ void main() {
           'prop3': true,
           'prop4': {'nested': 'value'},
         };
-        userManager.addUserProperties(properties).getOrThrow();
+        userManager.addProperties(properties).getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['prop1'], 'value1');
         expect(user.properties['prop2'], 42);
@@ -112,16 +112,16 @@ void main() {
         expect(user.properties['prop4'], {'nested': 'value'});
       });
       test('should get all user properties', () {
-        userManager.addStringProperty('key1', 'value1').getOrThrow();
-        userManager.addNumberProperty('key2', 123).getOrThrow();
-        userManager.addBooleanProperty('key3', false).getOrThrow();
+        userManager.addProperty('key1', 'value1').getOrThrow();
+        userManager.addProperty('key2', 123).getOrThrow();
+        userManager.addProperty('key3', false).getOrThrow();
         final properties = userManager.getUserProperties();
         expect(properties['key1'], 'value1');
         expect(properties['key2'], 123);
         expect(properties['key3'], false);
       });
       test('should return copy of properties', () {
-        userManager.addStringProperty('test_key', 'test_value').getOrThrow();
+        userManager.addProperty('test_key', 'test_value').getOrThrow();
         final properties = userManager.getUserProperties();
         properties['modified'] = 'new_value';
         final userProperties = userManager.getUser().properties;
@@ -131,7 +131,7 @@ void main() {
     group('Private Property Management', () {
       test('should add private string property', () {
         userManager
-            .addPrivateStringProperty('privateEmail', 'private@example.com')
+            .addProperty('privateEmail', 'private@example.com', isPrivate: true)
             .getOrThrow();
         final user = userManager.getUser();
         expect(user.properties.containsKey('privateEmail'), true);
@@ -140,7 +140,7 @@ void main() {
       });
       test('should add private number property', () {
         userManager
-            .addPrivateNumberProperty('privateSalary', 100000)
+            .addProperty('privateSalary', 100000, isPrivate: true)
             .getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['privateSalary'], 100000);
@@ -148,7 +148,7 @@ void main() {
             user.privateFields?.attributeNames.contains('privateSalary'), true);
       });
       test('should add private boolean property', () {
-        userManager.addPrivateBooleanProperty('privateFlag', true).getOrThrow();
+        userManager.addProperty('privateFlag', true, isPrivate: true).getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['privateFlag'], true);
         expect(
@@ -156,7 +156,7 @@ void main() {
       });
       test('should add private map property', () {
         final map = {'key1': 'value1', 'key2': 'value2'};
-        userManager.addPrivateMapProperty('privateMap', map).getOrThrow();
+        userManager.addProperty('privateMap', map, isPrivate: true).getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['privateMap'], map);
         expect(user.privateFields?.attributeNames.contains('privateMap'), true);
@@ -164,7 +164,7 @@ void main() {
       test('should add private JSON property', () {
         final jsonData = {'sensitive': 'data'};
         userManager
-            .addPrivateJsonProperty('privateJson', jsonData)
+            .addProperty('privateJson', jsonData, isPrivate: true)
             .getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['privateJson'], jsonData);
@@ -174,15 +174,15 @@ void main() {
     });
     group('Property Modification', () {
       test('should remove single property', () {
-        userManager.addStringProperty('toRemove', 'removeValue').getOrThrow();
-        userManager.addStringProperty('toKeep', 'keepValue').getOrThrow();
+        userManager.addProperty('toRemove', 'removeValue').getOrThrow();
+        userManager.addProperty('toKeep', 'keepValue').getOrThrow();
         userManager.removeProperty('toRemove').getOrThrow();
         final user = userManager.getUser();
         expect(user.properties.containsKey('toRemove'), false);
         expect(user.properties['toKeep'], 'keepValue');
       });
       test('should remove multiple properties', () {
-        userManager.addUserProperties({
+        userManager.addProperties({
           'prop1': 'value1',
           'prop2': 'value2',
           'prop3': 'value3',
@@ -196,14 +196,14 @@ void main() {
         expect(user.properties['prop4'], 'value4');
       });
       test('should mark existing property as private', () {
-        userManager.addStringProperty('publicProp', 'value').getOrThrow();
+        userManager.addProperty('publicProp', 'value').getOrThrow();
         userManager.markPropertyAsPrivate('publicProp').getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['publicProp'], 'value');
         expect(user.privateFields?.attributeNames.contains('publicProp'), true);
       });
       test('should mark multiple properties as private', () {
-        userManager.addUserProperties({
+        userManager.addProperties({
           'prop1': 'value1',
           'prop2': 'value2',
           'prop3': 'value3',
@@ -283,7 +283,7 @@ void main() {
         }
 
         userManager.addUserChangeListener(listener);
-        userManager.addStringProperty('trigger', 'value').getOrThrow();
+        userManager.addProperty('trigger', 'value').getOrThrow();
         expect(notifiedUser, isNotNull);
         expect(notifiedUser!.properties['trigger'], 'value');
         expect(notificationCount, 1);
@@ -303,10 +303,10 @@ void main() {
         int notificationCount = 0;
         void listener(CFUser user) => notificationCount++;
         userManager.addUserChangeListener(listener);
-        userManager.addStringProperty('test_key', 'test_value').getOrThrow();
+        userManager.addProperty('test_key', 'test_value').getOrThrow();
         expect(notificationCount, 1);
         userManager.removeUserChangeListener(listener);
-        userManager.addStringProperty('test_key2', 'test_value2').getOrThrow();
+        userManager.addProperty('test_key2', 'test_value2').getOrThrow();
         expect(notificationCount, 1); // Should not increase
       });
       test('should handle listener exceptions gracefully', () {
@@ -322,7 +322,7 @@ void main() {
         // Should not throw
         expect(
             () => userManager
-                .addStringProperty('test_key', 'test_value')
+                .addProperty('test_key', 'test_value')
                 .getOrThrow(),
             returnsNormally);
       });
@@ -336,8 +336,8 @@ void main() {
         // Test various modifications
         userManager.updateUser(CFUser.builder('updated').build()).getOrThrow();
         userManager.clearUser().getOrThrow();
-        userManager.addStringProperty('test_key', 'test_value').getOrThrow();
-        userManager.addPrivateStringProperty('private', 'value').getOrThrow();
+        userManager.addProperty('test_key', 'test_value').getOrThrow();
+        userManager.addProperty('private', 'value').getOrThrow();
         userManager.removeProperty('prop').getOrThrow();
         userManager
             .addContext(EvaluationContext(
@@ -363,21 +363,21 @@ void main() {
         }
 
         userManager.setupListeners(onUserChange: onUserChange);
-        userManager.addStringProperty('test_key', 'test_value').getOrThrow();
+        userManager.addProperty('test_key', 'test_value').getOrThrow();
         expect(setupListenerCount, 1);
       });
     });
     group('Complex Scenarios', () {
       test('should handle property overwrites', () {
-        userManager.addStringProperty('key', 'original').getOrThrow();
-        userManager.addStringProperty('key', 'updated').getOrThrow();
+        userManager.addProperty('key', 'original').getOrThrow();
+        userManager.addProperty('key', 'updated').getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['key'], 'updated');
       });
       test('should handle mixed property types for same key', () {
-        userManager.addStringProperty('mixedKey', 'string').getOrThrow();
-        userManager.addNumberProperty('mixedKey', 42).getOrThrow();
-        userManager.addBooleanProperty('mixedKey', true).getOrThrow();
+        userManager.addProperty('mixedKey', 'string').getOrThrow();
+        userManager.addProperty('mixedKey', 42).getOrThrow();
+        userManager.addProperty('mixedKey', true).getOrThrow();
         final user = userManager.getUser();
         expect(user.properties['mixedKey'], true);
       });
@@ -385,7 +385,7 @@ void main() {
         final originalUser = userManager.getUser();
         final originalProps =
             Map<String, dynamic>.from(originalUser.properties);
-        userManager.addStringProperty('newProp', 'newValue').getOrThrow();
+        userManager.addProperty('newProp', 'newValue').getOrThrow();
         // Original user should not be modified
         expect(originalUser.properties, originalProps);
         // New user should have the property
@@ -404,7 +404,7 @@ void main() {
         }
 
         userManager.addUserChangeListener(listener1);
-        userManager.addStringProperty('test_key', 'test_value').getOrThrow();
+        userManager.addProperty('test_key', 'test_value').getOrThrow();
         // Should handle concurrent modifications without issues
         expect(listeners.length, greaterThan(0));
       });
@@ -416,7 +416,7 @@ void main() {
           // Note: @ and spaces are not allowed in property keys
           // Only alphanumeric, underscore, dash, and dot are allowed
         };
-        userManager.addUserProperties(specialKeys).getOrThrow();
+        userManager.addProperties(specialKeys).getOrThrow();
         final user = userManager.getUser();
         specialKeys.forEach((key, value) {
           expect(user.properties[key], value);
@@ -434,7 +434,7 @@ void main() {
             },
           },
         };
-        userManager.addJsonProperty('deep', deepJson).getOrThrow();
+        userManager.addProperty('deep', deepJson).getOrThrow();
         final user = userManager.getUser();
         final retrieved = user.properties['deep'] as Map<String, dynamic>;
         expect(

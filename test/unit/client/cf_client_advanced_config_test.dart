@@ -56,12 +56,12 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 100));
         final client = CFClient.getInstance()!;
         // Verify initial value
-        expect(client.getString('feature_a', 'default'), equals('initial'));
+        expect(client.getValue<String>('feature_a', 'default'), equals('initial'));
         // Note: Runtime config updates would require implementing a refresh mechanism
         // The current implementation doesn't automatically poll for updates
         // This test documents the expected behavior if runtime updates were implemented
         // For now, the value remains the same
-        expect(client.getString('feature_a', 'default'), equals('initial'));
+        expect(client.getValue<String>('feature_a', 'default'), equals('initial'));
       });
       test('should_apply_config_updates_atomically', () async {
         // Arrange - Pre-populate cache with related flags
@@ -90,9 +90,9 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 100));
         final client = CFClient.getInstance()!;
         // Verify initial values
-        expect(client.getBoolean('feature_enabled', false), equals(true));
-        expect(client.getString('feature_variant', 'X'), equals('A'));
-        expect(client.getNumber('feature_percentage', -1), equals(100));
+        expect(client.getValue<bool>('feature_enabled', false), equals(true));
+        expect(client.getValue<String>('feature_variant', 'X'), equals('A'));
+        expect(client.getValue<double>('feature_percentage', -1), equals(100));
         // Note: Atomic updates would require implementing a config refresh mechanism
         // The current implementation loads config once during initialization
         // This test documents the expected atomicity behavior if updates were implemented
@@ -119,7 +119,7 @@ void main() {
         await CFClient.initialize(config, user);
         final client = CFClient.getInstance()!;
         // Assert - Should handle missing data gracefully
-        expect(client.getBoolean('old_flag', false),
+        expect(client.getValue<bool>('old_flag', false),
             anyOf(equals(true), equals(false)) // Either migrated or default
             );
       });
@@ -149,7 +149,7 @@ void main() {
         await CFClient.initialize(config, user);
         final client = CFClient.getInstance()!;
         // Assert - User context should be preserved via getUser
-        final currentUser = client.getUser();
+        final currentUser = client.user.getUser();
         expect(currentUser.userCustomerId, equals('migration_test_user'));
       });
     });
@@ -183,7 +183,7 @@ void main() {
         // Act - Evaluate flags multiple times
         final values = <String>[];
         for (int i = 0; i < 5; i++) {
-          values.add(client.getString('early_flag', 'default'));
+          values.add(client.getValue<String>('early_flag', 'default'));
         }
         // Assert - All should return the cached value
         expect(values, everyElement(equals('success')));
@@ -201,7 +201,7 @@ void main() {
         await CFClient.initialize(config, user);
         final client = CFClient.getInstance()!;
         // Act - Evaluation without timeout (synchronous)
-        final result = client.getBoolean('slow_flag', true);
+        final result = client.getValue<bool>('slow_flag', true);
         // Assert
         expect(result, equals(true)); // Should return default
       });
@@ -225,8 +225,8 @@ void main() {
         // Assert - Should complete in reasonable time
         expect(stopwatch.elapsedMilliseconds, lessThan(5000));
         // Should be able to evaluate flags
-        expect(client.getBoolean('feature_100', false), isA<bool>());
-        expect(client.getString('feature_500', 'default'), isA<String>());
+        expect(client.getValue<bool>('feature_100', false), isA<bool>());
+        expect(client.getValue<String>('feature_500', 'default'), isA<String>());
       });
       test('should_implement_config_size_limits', () async {
         // Arrange
@@ -295,7 +295,7 @@ void main() {
         final client = CFClient.getInstance()!;
         // Assert - Should use defaults
         expect(
-            client.getBoolean('any_flag', true), equals(true) // Default value
+            client.getValue<bool>('any_flag', true), equals(true) // Default value
             );
       });
       test('should_validate_and_sanitize_config_values', () async {
@@ -329,7 +329,7 @@ void main() {
         await CFClient.initialize(config, user);
         final client = CFClient.getInstance()!;
         // Assert - Should sanitize values
-        expect(client.getBoolean('flag_with_null', false),
+        expect(client.getValue<bool>('flag_with_null', false),
             equals(false) // Default for null
             );
       });

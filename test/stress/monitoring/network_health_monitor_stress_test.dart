@@ -76,9 +76,9 @@ void main() {
             'Recorded 1000 circuit breaker events in ${duration.inMilliseconds}ms');
         // Should complete in reasonable time
         expect(duration.inSeconds, lessThan(2));
-        // Verify data integrity
+        // Verify data integrity - monitor keeps max 100 events in history
         final activity = monitor.getCircuitBreakerActivity();
-        expect(activity['total_events'], 1000);
+        expect(activity['total_events'], 100); // SDK caps at 100 events
       });
     });
     group('Memory Management Under Load', () {

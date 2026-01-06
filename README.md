@@ -146,19 +146,27 @@ import 'package:customfit_ai_flutter_sdk/customfit_ai_flutter_sdk.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
-    // Simple configuration
+    // Configuration with builder pattern
+    // Note: build() returns CFResult<CFConfig>, use getOrThrow() to unwrap
     final config = CFConfig.builder('your-client-key')
         .setDebugLoggingEnabled(true)
         .setEventsFlushIntervalMs(60000)
         .setNetworkConnectionTimeoutMs(10000)
-        .build();
-    
+        .build()
+        .getOrThrow();  // Required: unwrap CFResult
+
+    // Or use convenient factory methods:
+    // final config = CFConfig.development('your-client-key');  // For development
+    // final config = CFConfig.production('your-client-key');   // For production
+    // final config = CFConfig.smart('your-client-key');        // Auto-detects environment
+
     // Create user with builder pattern
     final user = CFUser.builder('user-123')
         .addStringProperty('email', 'user@example.com')
         .addStringProperty('plan', 'premium')
+        .addStringProperty('platform', 'Flutter')
         .addNumberProperty('age', 25)
         .addBooleanProperty('betaUser', true)
         .addJsonProperty('preferences', {
@@ -166,15 +174,15 @@ void main() async {
           'notifications': true,
         })
         .build();
-    
+
     // Initialize SDK
     final client = await CFClient.initialize(config, user);
     print('CustomFit SDK initialized successfully');
-    
+
   } catch (e) {
     print('Failed to initialize CustomFit SDK: $e');
   }
-  
+
   runApp(MyApp());
 }
 ```
@@ -184,24 +192,25 @@ void main() async {
 ```dart
 final client = CFClient.getInstance();
 
-// Boolean flag
-bool isEnabled = client?.getBoolean('newFeature', false) ?? false;
+// Recommended: Use getValue<T>() for type-safe flag evaluation
+bool isEnabled = client?.getValue<bool>('newFeature', false) ?? false;
+String theme = client?.getValue<String>('appTheme', 'light') ?? 'light';
+double discountPercentage = client?.getValue<double>('discountPercentage', 0.0) ?? 0.0;
+Map<String, dynamic> config = client?.getValue<Map<String, dynamic>>('featureConfig', {}) ?? {};
 
-// String flag
-String theme = client?.getString('appTheme', 'light') ?? 'light';
-
-// Number flag
-double discountPercentage = client?.getNumber('discountPercentage', 0.0) ?? 0.0;
-
-// JSON flag
-Map<String, dynamic> config = client?.getJson('featureConfig', {}) ?? {};
+// Alternative: Use the featureFlags component
+// bool isEnabled = client?.featureFlags.getBoolean('newFeature', false) ?? false;
+// String theme = client?.featureFlags.getString('appTheme', 'light') ?? 'light';
 ```
 
 ### 3. Track Events
 
 ```dart
 // Track a simple event
-await client?.trackEvent('buttonClicked');
+final result = await client?.trackEvent('buttonClicked');
+if (result?.isSuccess != true) {
+  print('Failed to track: ${result?.getErrorMessage()}');
+}
 
 // Track event with properties
 await client?.trackEvent('purchaseCompleted', properties: {
@@ -209,526 +218,90 @@ await client?.trackEvent('purchaseCompleted', properties: {
   'amount': 99.99,
   'currency': 'USD',
   'paymentMethod': 'creditCard',
+  'platform': 'Flutter',
 });
-```
 
-### 4. Flutter Widget Integration
-
-```dart
-// Main App Widget with Provider Pattern
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:customfit_ai_flutter_sdk/customfit_ai_flutter_sdk.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize SDK before running app
-  await initializeCustomFit();
-  
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => FeatureFlagProvider(),
-      child: MyApp(),
-    ),
-  );
-}
-
-// Feature Flag Provider for State Management
-class FeatureFlagProvider extends ChangeNotifier {
-  final CFClient? _client = CFClient.getInstance();
-  
-  Map<String, dynamic> _flags = {};
-  String _appTheme = 'light';
-  bool _premiumEnabled = false;
-  bool _newDashboard = false;
-  
-  FeatureFlagProvider() {
-    _initializeFlags();
-    _setupListeners();
-  }
-  
-  // Getters
-  String get appTheme => _appTheme;
-  bool get premiumEnabled => _premiumEnabled;
-  bool get newDashboard => _newDashboard;
-  
-  void _initializeFlags() {
-    _appTheme = _client?.getString('app_theme', 'light') ?? 'light';
-    _premiumEnabled = _client?.getBoolean('premium_features', false) ?? false;
-    _newDashboard = _client?.getBoolean('new_dashboard', false) ?? false;
-    notifyListeners();
-  }
-  
-  void _setupListeners() {
-    _client?.addAllFlagsListener((flags) {
-      _flags = flags;
-      _appTheme = flags['app_theme'] ?? 'light';
-      _premiumEnabled = flags['premium_features'] ?? false;
-      _newDashboard = flags['new_dashboard'] ?? false;
-      notifyListeners();
-    });
-  }
-  
-  Future<void> trackEvent(String event, [Map<String, dynamic>? properties]) async {
-    await _client?.trackEvent(event, properties: properties);
-  }
-}
-
-// Main App Widget
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<FeatureFlagProvider>(
-      builder: (context, featureFlags, child) {
-        return MaterialApp(
-          title: 'CustomFit Demo',
-          theme: featureFlags.appTheme == 'dark' 
-            ? ThemeData.dark() 
-            : ThemeData.light(),
-          home: MainScreen(),
-        );
-      },
-    );
-  }
-}
-
-// Main Screen with Navigation
-class MainScreen extends StatefulWidget {
-  @override
-  _MainScreenState createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-  
-  @override
-  Widget build(BuildContext context) {
-    final featureFlags = Provider.of<FeatureFlagProvider>(context);
-    
-    final List<Widget> _screens = [
-      HomeScreen(),
-      if (featureFlags.newDashboard) DashboardScreen(),
-      if (featureFlags.premiumEnabled) PremiumScreen(),
-      SettingsScreen(),
-    ];
-    
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          featureFlags.trackEvent('tab_selected', {
-            'tab_index': index,
-            'tab_name': ['home', 'dashboard', 'premium', 'settings'][index],
-          });
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          if (featureFlags.newDashboard)
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-          if (featureFlags.premiumEnabled)
-            BottomNavigationBarItem(
-              icon: Icon(Icons.star),
-              label: 'Premium',
-            ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Home Screen
-class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final featureFlags = Provider.of<FeatureFlagProvider>(context);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('CustomFit Demo'),
-      ),
-      body: ListView(
-        padding: EdgeInsets.all(16),
-        children: [
-          // Feature Banner Widget
-          if (featureFlags.newDashboard)
-            FeatureBanner(
-              title: '🎉 New Dashboard Available!',
-              subtitle: 'Check out our redesigned dashboard',
-              onTap: () {
-                featureFlags.trackEvent('feature_banner_clicked', {
-                  'feature': 'new_dashboard',
-                });
-              },
-            ),
-          
-          SizedBox(height: 20),
-          
-          // Action Cards
-          ActionCard(
-            title: 'Track Custom Event',
-            icon: Icons.analytics,
-            onTap: () async {
-              await featureFlags.trackEvent('custom_action', {
-                'timestamp': DateTime.now().millisecondsSinceEpoch,
-                'source': 'home_screen',
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Event tracked!')),
-              );
-            },
-          ),
-          
-          if (featureFlags.premiumEnabled)
-            ActionCard(
-              title: 'Premium Features',
-              icon: Icons.star,
-              color: Colors.amber,
-              onTap: () {
-                featureFlags.trackEvent('premium_card_clicked');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => PremiumScreen()),
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// Reusable Feature Banner Widget
-class FeatureBanner extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-  
-  const FeatureBanner({
-    Key? key,
-    required this.title,
-    required this.subtitle,
-    this.onTap,
-  }) : super(key: key);
-  
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue, Colors.blue.shade700],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.new_releases, color: Colors.white, size: 32),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, color: Colors.white),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Reusable Action Card Widget
-class ActionCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color? color;
-  final VoidCallback onTap;
-  
-  const ActionCard({
-    Key? key,
-    required this.title,
-    required this.icon,
-    this.color,
-    required this.onTap,
-  }) : super(key: key);
-  
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: (color ?? Theme.of(context).primaryColor).withOpacity(0.1),
-          child: Icon(icon, color: color ?? Theme.of(context).primaryColor),
-        ),
-        title: Text(title),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
-      ),
-    );
-  }
-}
-
-// Dashboard Screen (Feature Flagged)
-class DashboardScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final featureFlags = Provider.of<FeatureFlagProvider>(context);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Dashboard'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.dashboard, size: 64, color: Colors.blue),
-            SizedBox(height: 16),
-            Text(
-              'New Dashboard',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            SizedBox(height: 8),
-            Text('This is a feature-flagged dashboard'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Premium Screen (Feature Flagged)
-class PremiumScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Premium Features'),
-        backgroundColor: Colors.amber,
-      ),
-      body: ListView(
-        padding: EdgeInsets.all(16),
-        children: [
-          PremiumFeatureCard(
-            title: 'Advanced Analytics',
-            description: 'Get detailed insights into your usage',
-            icon: Icons.analytics_outlined,
-          ),
-          PremiumFeatureCard(
-            title: 'Priority Support',
-            description: '24/7 dedicated support team',
-            icon: Icons.support_agent,
-          ),
-          PremiumFeatureCard(
-            title: 'Custom Themes',
-            description: 'Personalize your app experience',
-            icon: Icons.palette,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Premium Feature Card Widget
-class PremiumFeatureCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData icon;
-  
-  const PremiumFeatureCard({
-    Key? key,
-    required this.title,
-    required this.description,
-    required this.icon,
-  }) : super(key: key);
-  
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: Colors.amber, size: 32),
-            ),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Settings Screen
-class SettingsScreen extends StatefulWidget {
-  @override
-  _SettingsScreenState createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  bool _analyticsEnabled = true;
-  
-  @override
-  Widget build(BuildContext context) {
-    final featureFlags = Provider.of<FeatureFlagProvider>(context);
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Settings'),
-      ),
-      body: ListView(
-        children: [
-          ListTile(
-            title: Text('Theme'),
-            subtitle: Text(featureFlags.appTheme.capitalize()),
-            leading: Icon(Icons.palette),
-          ),
-          Divider(),
-          SwitchListTile(
-            title: Text('Push Notifications'),
-            subtitle: Text('Receive updates and alerts'),
-            value: _notificationsEnabled,
-            onChanged: (value) {
-              setState(() {
-                _notificationsEnabled = value;
-              });
-              featureFlags.trackEvent('setting_changed', {
-                'setting': 'notifications',
-                'value': value,
-              });
-            },
-          ),
-          SwitchListTile(
-            title: Text('Analytics'),
-            subtitle: Text('Help us improve the app'),
-            value: _analyticsEnabled,
-            onChanged: (value) {
-              setState(() {
-                _analyticsEnabled = value;
-              });
-              featureFlags.trackEvent('setting_changed', {
-                'setting': 'analytics',
-                'value': value,
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Extension to capitalize strings
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${this.substring(1)}";
-  }
-}
+// Flush events immediately (useful before app termination)
+await client?.flushEvents();
 ```
 
 ## Configuration
 
-### Configuration
+The CustomFit Flutter SDK provides flexible configuration options using factory methods or the builder pattern.
 
-The CustomFit Flutter SDK provides flexible configuration options using the builder pattern.
-
-#### Basic Configuration
+#### Factory Methods (Recommended for Simple Setup)
 
 ```dart
-// Simple configuration with default settings
-final config = CFConfig.builder('your-client-key').build();
+// Auto-detect environment based on debug mode (recommended)
+final config = CFConfig.smart('your-client-key');
+
+// Explicit environment selection
+final config = CFConfig.development('your-client-key');
+final config = CFConfig.production('your-client-key');
+final config = CFConfig.testing('your-client-key');
+
+// Minimal configuration
+final config = CFConfig.simple('your-client-key');
+```
+
+#### Basic Configuration with Builder
+
+```dart
+// Note: build() returns CFResult<CFConfig>, use getOrThrow() to unwrap
+final config = CFConfig.builder('your-client-key')
+    .build()
+    .getOrThrow();
 ```
 
 #### Advanced Configuration
 
 ```dart
 final config = CFConfig.builder('your-client-key')
+    // Logging
     .setDebugLoggingEnabled(true)
-    .setEventsFlushIntervalMs(60000)
+    .setLogLevel('debug')  // 'debug', 'info', 'warning', 'error'
+
+    // Events & Summaries
+    .setEventsFlushIntervalMs(3000)
+    .setEventsFlushTimeSeconds(3)
+    .setSummariesFlushIntervalMs(5000)
+    .setSummariesFlushTimeSeconds(5)
+
+    // Network
     .setNetworkConnectionTimeoutMs(10000)
+    .setNetworkReadTimeoutMs(10000)
+
+    // Polling
+    .setSdkSettingsCheckIntervalMs(10000)
+    .setBackgroundPollingIntervalMs(10000)
+    .setReducedPollingIntervalMs(10000)
+
+    // Offline & Storage
     .setOfflineMode(false)
-    .build();
+    .setLocalStorageEnabled(true)
+    .setMaxStoredEvents(500)
+
+    .build()
+    .getOrThrow();
 ```
 
 
+
+#### Auto-Refresh Configuration
+
+```dart
+final config = CFConfig.builder('your-client-key')
+    // Auto-refresh flags when events are flushed
+    .setAutoRefreshOnEventFlush(true)
+    .setAutoRefreshDelayMs(100)
+
+    // Auto-refresh flags when user properties change
+    .setAutoRefreshOnUserChange(true)
+    .setUserChangeRefreshDebounceMs(500)
+
+    .build()
+    .getOrThrow();
+```
 
 ### Enterprise Configuration
 
@@ -742,7 +315,8 @@ final config = CFConfig.builder('your-enterprise-key')
     .setOfflineMode(false)
     .setSummariesFlushIntervalMs(300000)  // 5 minutes
     .setMaxStoredEvents(500)              // Higher capacity
-    .build();
+    .build()
+    .getOrThrow();
 ```
 
 ## User Management
@@ -776,17 +350,52 @@ final anonymousUser = CFUser.anonymousBuilder()
 ```dart
 final client = CFClient.getInstance();
 
-// Add properties to existing user
-client?.addStringProperty('plan', 'enterprise');  // Upgrade plan
-client?.addBooleanProperty('premium_access', true);
-client?.addNumberProperty('usage_count', 42);
+// Add properties using the user component (recommended pattern)
+client?.user.addProperty('plan', 'enterprise');  // Generic method for any type
+client?.user.addProperty('premium_access', true);
+client?.user.addProperty('usage_count', 42);
+client?.user.addProperty('state', 'Karnataka');
 
 // Or add multiple properties at once
-client?.addUserProperty('subscription_tier', 'pro');
-client?.addJsonProperty('preferences', {
+client?.user.addProperties({
+  'subscription_tier': 'pro',
+  'notifications': true,
+  'is_logged_in': true,
+});
+
+// Type-specific methods also available
+client?.user.addStringProperty('plan', 'enterprise');
+client?.user.addBooleanProperty('premium_access', true);
+client?.user.addNumberProperty('usage_count', 42);
+
+// JSON properties for complex data
+client?.user.addJsonProperty('preferences', {
   'notifications': true,
   'theme': 'dark'
 });
+```
+
+### Runtime Property Management
+
+```dart
+final client = CFClient.getInstance();
+
+// Get current user properties
+Map<String, dynamic> props = client?.user.getUserProperties() ?? {};
+
+// Remove properties
+client?.user.removeProperty('temp_flag');
+client?.user.removeProperties(['temp_a', 'temp_b']);
+
+// Mark properties as private (excluded from analytics)
+client?.user.markPropertyAsPrivate('email');
+client?.user.markPropertiesAsPrivate(['phone', 'address']);
+
+// Get current user object
+CFUser? currentUser = client?.user.getUser();
+
+// Clear user (useful for logout)
+await client?.user.clearUser();
 ```
 
 ### Privacy and Security
@@ -909,30 +518,56 @@ final user = CFUser.builder('customer123')
 
 ## Feature Flags
 
-### Basic Flag Evaluation
+### Unified API (Recommended)
+
+Use `getValue<T>()` for type-safe flag evaluation:
 
 ```dart
 final client = CFClient.getInstance();
 
 // Boolean flags
-bool isEnabled = client?.getBoolean('new_feature', false) ?? false;
+bool isEnabled = client?.getValue<bool>('new_feature', false) ?? false;
 
-// String flags  
-String theme = client?.getString('app_theme', 'light') ?? 'light';
+// String flags
+String theme = client?.getValue<String>('app_theme', 'light') ?? 'light';
 
 // Number flags
-double threshold = client?.getNumber('conversion_threshold', 0.5) ?? 0.5;
+double threshold = client?.getValue<double>('conversion_threshold', 0.5) ?? 0.5;
+int maxRetries = client?.getValue<int>('max_retries', 3) ?? 3;
 
 // JSON flags
-Map<String, dynamic> config = client?.getJson('feature_config', {}) ?? {};
+Map<String, dynamic> config = client?.getValue<Map<String, dynamic>>('feature_config', {}) ?? {};
+```
+
+### Component API (Alternative)
+
+Access flags via the `featureFlags` component:
+
+```dart
+final flags = client?.featureFlags;
+
+bool isEnabled = flags?.getBoolean('new_feature', false) ?? false;
+String theme = flags?.getString('app_theme', 'light') ?? 'light';
+double threshold = flags?.getNumber('conversion_threshold', 0.5) ?? 0.5;
+Map<String, dynamic> config = flags?.getJson('feature_config', {}) ?? {};
+```
+
+### Utility Methods
+
+```dart
+// Check if a flag exists
+bool exists = client?.flagExists('feature_key') ?? false;
+
+// Get all flags as a map
+Map<String, dynamic> allFlags = client?.getAllFlags() ?? {};
 ```
 
 ### Advanced Flag Usage
 
 ```dart
 // Using flag values in business logic
-final maxRetries = client?.getNumber('api_max_retries', 3)?.toInt() ?? 3;
-final timeout = client?.getNumber('api_timeout_ms', 5000)?.toInt() ?? 5000;
+final maxRetries = client?.getValue<double>('api_max_retries', 3.0)?.toInt() ?? 3;
+final timeout = client?.getValue<double>('api_timeout_ms', 5000.0)?.toInt() ?? 5000;
 
 // Configure components based on flags
 final apiClient = HttpClient(
@@ -941,7 +576,7 @@ final apiClient = HttpClient(
 );
 
 // Feature rollout with percentage
-final rolloutPercentage = client?.getNumber('feature_rollout', 0.0) ?? 0.0;
+final rolloutPercentage = client?.getValue<double>('feature_rollout', 0.0) ?? 0.0;
 final userId = user.userCustomerId ?? '';
 final userHash = userId.hashCode.abs() % 100;
 final shouldShowFeature = userHash < (rolloutPercentage * 100);
@@ -1043,8 +678,11 @@ final debugMode = quickFlags.boolFlag('debug_mode', false);
 ```dart
 final client = CFClient.getInstance();
 
-// Simple event
-await client?.trackEvent('button_clicked');
+// Simple event with result handling
+final result = await client?.trackEvent('button_clicked');
+if (result?.isSuccess != true) {
+  print('Failed to track: ${result?.getErrorMessage()}');
+}
 
 // Event with properties
 await client?.trackEvent('purchase_completed', properties: {
@@ -1052,8 +690,27 @@ await client?.trackEvent('purchase_completed', properties: {
   'price': 29.99,
   'currency': 'USD',
   'payment_method': 'credit_card',
+  'platform': 'Flutter',
   'timestamp': DateTime.now().millisecondsSinceEpoch,
 });
+
+// Track conversion events
+await client?.trackConversion('checkout_complete', {
+  'order_id': 'order-123',
+  'total': 99.99,
+  'items_count': 3,
+});
+```
+
+### Event Queue Management
+
+```dart
+// Flush all pending events immediately
+await client?.flushEvents();
+
+// Get count of pending events
+int pendingCount = client?.getPendingEventCount() ?? 0;
+print('Pending events: $pendingCount');
 ```
 
 ### Advanced Analytics
@@ -1086,37 +743,190 @@ Sessions are automatically managed by the SDK with configurable rotation policie
 // - User authentication changes
 // - App state transitions (background/foreground)
 
-// Access current session info
+// Access current session info using the session component (recommended)
 final client = CFClient.getInstance();
-final sessionId = client?.getCurrentSessionId();
+final sessionId = client?.session.getCurrentSessionId();
+final sessionData = client?.session.getCurrentSessionData();
+
+// Force session rotation
+await client?.session.forceSessionRotation();
+
+// Get session statistics
+final stats = client?.session.getSessionStatistics();
+
 ```
 
 ## Listeners & Callbacks
 
-### Feature Flag Change Listeners
+### Configuration Listeners (Recommended)
+
+Use typed listeners for real-time flag updates. This is the primary listener API:
 
 ```dart
-// Listen for specific flag changes
 final client = CFClient.getInstance();
 
-client?.addFeatureFlagListener('new_feature', (flagKey, newValue) {
-  print('Flag $flagKey changed to: $newValue');
-  
-  // Update UI or trigger actions
-  setState(() {
-    _featureEnabled = newValue as bool;
-  });
+// String flag listener
+client?.addConfigListener<String>('app_theme', (newValue) {
+  print('Theme changed to: $newValue');
+  setState(() => _theme = newValue);
 });
 
-// Listen for all flag changes
-client?.addAllFlagsListener((flags) {
-  print('Flags updated: ${flags.keys}');
-  
-  // Batch update multiple features
-  _updateAllFeatures(flags);
+// Boolean flag listener
+client?.addConfigListener<bool>('new_feature', (isEnabled) {
+  print('Feature enabled: $isEnabled');
+  setState(() => _featureEnabled = isEnabled);
+});
+
+// Number flag listener
+client?.addConfigListener<double>('discount_rate', (rate) {
+  print('Discount rate: $rate');
+  setState(() => _discountRate = rate);
+});
+
+// JSON flag listener
+client?.addConfigListener<Map<String, dynamic>>('user_config', (config) {
+  print('Config updated: $config');
+  setState(() => _userConfig = config);
 });
 ```
 
+### Removing Listeners
+
+```dart
+// Remove listener for specific flag
+client?.removeConfigListener('app_theme');
+
+// Clear listeners for specific flag
+client?.clearConfigListeners('app_theme');
+
+// Clear all listeners (recommended in dispose())
+client?.clearAllConfigListeners();
+```
+
+### Feature Flag Listeners (Alternative)
+
+For listeners that need both old and new values:
+
+```dart
+// Listen to specific flag changes (receives key, old value, new value)
+client?.addFeatureFlagListener('new_feature', (flagKey, oldValue, newValue) {
+  print('Flag $flagKey changed from $oldValue to $newValue');
+});
+
+// Listen to all flag changes
+client?.addAllFlagsListener((oldFlags, newFlags) {
+  print('Flags updated');
+  // Compare oldFlags and newFlags to find changes
+});
+
+// Remove listeners
+client?.removeFeatureFlagListener('new_feature', listenerCallback);
+client?.removeAllFlagsListener(allFlagsCallback);
+```
+
+## SDK Lifecycle Management
+
+### Initialization
+
+```dart
+// Standard initialization
+final client = await CFClient.initialize(config, user);
+
+// With automatic retry on network failures
+final client = await CFClient.initializeWithRetry(
+  config,
+  user,
+  maxRetries: 5,
+  initialDelayMs: 1000,
+);
+
+// Check initialization state
+bool isReady = CFClient.isInitialized();
+bool isStarting = CFClient.isInitializing();
+```
+
+### User Switching (Login/Logout)
+
+When a user logs in or out, reinitialize the SDK with the new user context:
+
+```dart
+Future<void> switchUser(String newUserId) async {
+  final client = CFClient.getInstance();
+
+  // Step 1: Remove existing listeners first
+  client?.clearAllConfigListeners();
+
+  // Step 2: Create new user
+  final newUser = CFUser.builder(newUserId)
+      .addStringProperty('platform', 'Flutter')
+      .addBooleanProperty('is_logged_in', true)
+      .build();
+
+  // Step 3: Reinitialize with new user (handles shutdown automatically)
+  final newClient = await CFClient.reinitialize(config, newUser);
+
+  // Step 4: Re-register listeners
+  _setupListeners(newClient);
+
+  // Step 5: Force refresh to get user-specific flags
+  await newClient.forceRefresh();
+}
+
+Future<void> logout() async {
+  final client = CFClient.getInstance();
+  client?.clearAllConfigListeners();
+
+  // Create anonymous user
+  final anonymousUser = CFUser.anonymousBuilder()
+      .addStringProperty('platform', 'Flutter')
+      .addBooleanProperty('is_logged_in', false)
+      .build();
+
+  await CFClient.reinitialize(config, anonymousUser);
+}
+```
+
+### Manual Refresh
+
+```dart
+// Force fetch latest configuration from server
+final success = await client?.forceRefresh();
+if (success == true) {
+  print('Flags refreshed successfully');
+}
+
+// Flush pending events before refresh (recommended pattern)
+await client?.flushEvents();
+await client?.forceRefresh();
+```
+
+### Offline Mode
+
+Toggle offline mode at runtime:
+
+```dart
+// Enable offline mode (SDK uses cached values)
+client?.setOffline(true);
+
+// Disable offline mode (SDK fetches from server)
+client?.setOffline(false);
+
+// Check current state
+bool isOffline = client?.isOffline() ?? false;
+```
+
+### Shutdown
+
+```dart
+// Shutdown singleton instance (recommended for app termination)
+await CFClient.shutdownSingleton();
+
+// Or shutdown via instance method
+await client?.shutdown();
+
+// Clear instance for testing purposes
+CFClient.clearInstance();
+```
 
 ## Offline Support
 
@@ -1458,6 +1268,122 @@ try {
 }
 ```
 
+## Component APIs
+
+The SDK provides component accessors for organized API access.
+
+### User Component (`client.user`)
+
+```dart
+final client = CFClient.getInstance();
+
+// Set a completely new user
+await client?.user.setUser(newUser);
+
+// Get current user
+CFUser? currentUser = client?.user.getUser();
+
+// Clear user (useful for logout)
+await client?.user.clearUser();
+
+// Add properties dynamically
+client?.user.addProperty('is_logged_in', true);
+client?.user.addProperty('plan', 'premium');
+client?.user.addProperties({
+  'subscription_tier': 'pro',
+  'notifications_enabled': true,
+});
+
+// Get current properties
+Map<String, dynamic> props = client?.user.getUserProperties() ?? {};
+
+// Remove properties
+client?.user.removeProperty('temp_flag');
+client?.user.removeProperties(['temp_a', 'temp_b']);
+
+// Privacy controls
+client?.user.markPropertyAsPrivate('email');
+client?.user.markPropertiesAsPrivate(['phone', 'address']);
+
+// Context management
+client?.user.addContext(locationContext);
+client?.user.removeContext(ContextType.location, 'primary');
+List<EvaluationContext> contexts = client?.user.getContexts() ?? [];
+```
+
+### Session Component (`client.session`)
+
+```dart
+// Get session information
+String? sessionId = client?.session.getCurrentSessionId();
+SessionData? sessionData = client?.session.getCurrentSessionData();
+
+// Force session rotation
+await client?.session.forceSessionRotation();
+
+// Update session activity (for custom activity tracking)
+await client?.session.updateSessionActivity();
+
+// Handle authentication changes
+client?.session.onUserAuthenticationChange(userId);
+
+// Get session statistics
+Map<String, dynamic> stats = client?.session.getSessionStatistics() ?? {};
+
+// Check initialization status
+bool isReady = client?.session.isInitialized ?? false;
+```
+
+### Recovery Component (`client.recovery`)
+
+```dart
+// Perform system health check
+final healthResult = await client?.recovery.performSystemHealthCheck();
+if (healthResult?.isSuccess == true) {
+  final status = healthResult?.getOrNull();
+  print('Overall status: ${status?.overallStatus}');
+  print('Config manager healthy: ${status?.configManagerHealthy}');
+  print('Event tracker healthy: ${status?.eventTrackerHealthy}');
+}
+
+// Recover session with optional auth token refresh
+await client?.recovery.recoverSession(
+  reason: 'manual_recovery',
+  authTokenRefreshCallback: () async => 'new-auth-token',
+);
+```
+
+### Feature Flags Component (`client.featureFlags`)
+
+```dart
+// Type-specific getters (alternative to getValue<T>)
+bool isEnabled = client?.featureFlags.getBoolean('feature', false) ?? false;
+String theme = client?.featureFlags.getString('theme', 'light') ?? 'light';
+double rate = client?.featureFlags.getNumber('rate', 0.0) ?? 0.0;
+Map<String, dynamic> config = client?.featureFlags.getJson('config', {}) ?? {};
+
+// Get all flags
+Map<String, dynamic> allFlags = client?.featureFlags.getAllFlags() ?? {};
+
+// Check flag existence
+bool exists = client?.featureFlags.flagExists('feature_key') ?? false;
+```
+
+### Events Component (`client.events`)
+
+```dart
+// Track events via component
+await client?.events.trackEvent('button_clicked');
+await client?.events.trackEventWithProperties('purchase', {'amount': 99.99});
+await client?.events.trackConversion('checkout', {'order_id': '123'});
+
+// Lifecycle events
+await client?.events.trackLifecycleEvent('app_opened', {'source': 'notification'});
+
+// Flush events
+await client?.events.flushEvents();
+```
+
 ## Error Handling
 
 The SDK provides comprehensive error handling with the `CFResult<T>` wrapper for safe operations:
@@ -1481,10 +1407,123 @@ try {
 
 ## Flutter Integration
 
-### State Management Integration
+### State Management with Provider
 
 ```dart
-// With Provider
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:customfit_ai_flutter_sdk/customfit_ai_flutter_sdk.dart';
+
+class CustomFitProvider extends ChangeNotifier {
+  CFClient? _client;
+  bool _isInitialized = false;
+
+  // Feature flag values
+  String _theme = 'light';
+  bool _newFeatureEnabled = false;
+  Map<String, dynamic> _userConfig = {};
+
+  // Getters
+  bool get isInitialized => _isInitialized;
+  String get theme => _theme;
+  bool get newFeatureEnabled => _newFeatureEnabled;
+  Map<String, dynamic> get userConfig => _userConfig;
+
+  Future<void> initialize(String userId) async {
+    final config = CFConfig.builder('your-client-key')
+        .setDebugLoggingEnabled(true)
+        .setEventsFlushIntervalMs(5000)
+        .build()
+        .getOrThrow();
+
+    final user = CFUser.builder(userId)
+        .addStringProperty('platform', 'Flutter')
+        .build();
+
+    _client = await CFClient.initialize(config, user);
+    _setupListeners();
+    _loadInitialValues();
+    _isInitialized = true;
+    notifyListeners();
+  }
+
+  void _setupListeners() {
+    // Typed config listeners for real-time updates
+    _client?.addConfigListener<String>('app_theme', (value) {
+      _theme = value;
+      notifyListeners();
+    });
+
+    _client?.addConfigListener<bool>('new_feature', (value) {
+      _newFeatureEnabled = value;
+      notifyListeners();
+    });
+
+    _client?.addConfigListener<Map<String, dynamic>>('user_config', (value) {
+      _userConfig = value;
+      notifyListeners();
+    });
+  }
+
+  void _loadInitialValues() {
+    _theme = _client?.getValue<String>('app_theme', 'light') ?? 'light';
+    _newFeatureEnabled = _client?.getValue<bool>('new_feature', false) ?? false;
+    _userConfig = _client?.getValue<Map<String, dynamic>>('user_config', {}) ?? {};
+  }
+
+  Future<void> trackEvent(String event, [Map<String, dynamic>? properties]) async {
+    await _client?.trackEvent(event, properties: properties ?? {});
+  }
+
+  Future<void> refreshFlags() async {
+    await _client?.forceRefresh();
+    _loadInitialValues();
+    notifyListeners();
+  }
+
+  Future<void> switchUser(String newUserId, {bool isLoggedIn = true}) async {
+    _client?.clearAllConfigListeners();
+
+    final newUser = CFUser.builder(newUserId)
+        .addStringProperty('platform', 'Flutter')
+        .addBooleanProperty('is_logged_in', isLoggedIn)
+        .build();
+
+    _client = await CFClient.reinitialize(
+      CFConfig.builder('your-client-key').build().getOrThrow(),
+      newUser,
+    );
+
+    _setupListeners();
+    await _client?.forceRefresh();
+    _loadInitialValues();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _client?.clearAllConfigListeners();
+    CFClient.shutdownSingleton();
+    super.dispose();
+  }
+}
+
+// Usage in main.dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CustomFitProvider()..initialize('anonymous-user'),
+      child: const MyApp(),
+    ),
+  );
+}
+```
+
+### Alternative: Basic Provider Pattern
+
+```dart
 class FeatureFlagProvider extends ChangeNotifier {
   final CFClient? _client = CFClient.getInstance();
   Map<String, dynamic> _flags = {};
@@ -1536,9 +1575,9 @@ class FeatureFlag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final client = CFClient.getInstance();
-    final isEnabled = client?.getBoolean(flagKey, defaultValue) ?? defaultValue;
-    
-    return isEnabled ? child : (fallback ?? SizedBox.shrink());
+    final isEnabled = client?.getValue<bool>(flagKey, defaultValue) ?? defaultValue;
+
+    return isEnabled ? child : (fallback ?? const SizedBox.shrink());
   }
 }
 
@@ -1566,22 +1605,22 @@ void main() async {
 // 2. Cache flag values to avoid repeated lookups
 class FeatureCache {
   static final Map<String, dynamic> _cache = {};
-  
+
   static bool getFeature(String key, bool defaultValue) {
     if (_cache.containsKey(key)) {
       return _cache[key] as bool;
     }
-    
+
     final client = CFClient.getInstance();
-    final value = client?.getBoolean(key, defaultValue) ?? defaultValue;
+    final value = client?.getValue<bool>(key, defaultValue) ?? defaultValue;
     _cache[key] = value;
     return value;
   }
 }
 
 // 3. Use listeners for reactive updates
-client?.addFeatureFlagListener('feature_key', (key, value) {
-  FeatureCache._cache[key] = value; // Update cache
+client?.addConfigListener<bool>('feature_key', (value) {
+  FeatureCache._cache['feature_key'] = value; // Update cache
 });
 ```
 
@@ -1591,7 +1630,7 @@ client?.addFeatureFlagListener('feature_key', (key, value) {
 // Always provide sensible defaults
 bool isFeatureEnabled(String key) {
   final client = CFClient.getInstance();
-  return client?.getBoolean(key, false) ?? false;
+  return client?.getValue<bool>(key, false) ?? false;
 }
 
 // Graceful degradation
@@ -1601,7 +1640,7 @@ Widget buildFeature() {
       return NewUIComponent();
     }
   } catch (e) {
-    Logger.w('Feature flag evaluation failed: $e');
+    debugPrint('Feature flag evaluation failed: $e');
   }
   return FallbackUIComponent();
 }
@@ -1616,7 +1655,7 @@ await client?.trackEvent('user_action', properties: {
   'element_id': 'submit_button',
   'page_name': 'checkout',
   'timestamp': DateTime.now().millisecondsSinceEpoch,
-  'session_id': client?.getCurrentSessionId(),
+  'session_id': client?.session.getCurrentSessionId(),
   'user_id': user.userCustomerId,
 });
 
@@ -1633,40 +1672,55 @@ Main SDK client providing feature flags, event tracking, and user management.
 
 ```dart
 class CFClient {
-  // Initialization
+  // === Initialization (Static Methods) ===
   static Future<CFClient> initialize(CFConfig config, CFUser user);
+  static Future<CFClient> initializeWithRetry(CFConfig config, CFUser user, {int maxRetries, int initialDelayMs});
+  static Future<CFClient> reinitialize(CFConfig config, CFUser user);
   static CFClient? getInstance();
-  
-  // Feature flags
-  bool? getBoolean(String key, bool defaultValue);
-  String? getString(String key, String defaultValue);
-  double? getNumber(String key, double defaultValue);
-  Map<String, dynamic>? getJson(String key, Map<String, dynamic> defaultValue);
-  
-  // Event tracking
-  Future<void> trackEvent(String eventType, {Map<String, dynamic>? properties});
-  Future<CFResult<void>> flushEvents(); // Returns CFResult wrapper
-  
-  // User management
-  void addStringProperty(String key, String value);
-  void addNumberProperty(String key, num value);
-  void addBooleanProperty(String key, bool value);
-  void addJsonProperty(String key, Map<String, dynamic> value);
-  void addGeoPointProperty(String key, double lat, double lon);
-  void addDateProperty(String key, DateTime value);
-  void addUserProperty(String key, dynamic value);
-  
-  // Listeners
-  void addFeatureFlagListener(String flagKey, FeatureFlagChangeListener listener);
-  void addAllFlagsListener(AllFlagsListener listener);
-  // Note: Connection status listeners are accessed through the listeners component
-  // client?.listeners.addConnectionStatusListener(listener);
-  
-  // Session management
-  String? getCurrentSessionId();
-  void forceSessionRotation();
-  
-  // Cleanup
+  static bool isInitialized();
+  static bool isInitializing();
+  static Future<void> shutdownSingleton();
+  static void clearInstance();  // For testing
+
+  // === Feature Flags (Recommended: getValue<T>) ===
+  T getValue<T>(String key, T defaultValue);  // Recommended unified API
+  Map<String, dynamic> getAllFlags();
+  bool flagExists(String key);
+
+  // === Event Tracking ===
+  Future<CFResult<void>> trackEvent(String eventType, {Map<String, dynamic>? properties});
+  Future<CFResult<void>> trackConversion(String conversionName, Map<String, dynamic> properties);
+  Future<CFResult<void>> flushEvents();
+  int getPendingEventCount();
+
+  // === Configuration Listeners (Recommended) ===
+  void addConfigListener<T>(String key, void Function(T) listener);
+  void removeConfigListener(String key);
+  void clearConfigListeners(String key);
+  void clearAllConfigListeners();
+
+  // === Feature Flag Listeners (Alternative) ===
+  void addFeatureFlagListener(String flagKey, void Function(String, dynamic, dynamic) listener);
+  void removeFeatureFlagListener(String flagKey, void Function(String, dynamic, dynamic) listener);
+  void addAllFlagsListener(void Function(Map<String, dynamic>, Map<String, dynamic>) listener);
+  void removeAllFlagsListener(void Function(Map<String, dynamic>, Map<String, dynamic>) listener);
+
+  // === Runtime Configuration ===
+  void setOffline(bool offline);
+  bool isOffline();
+  Future<bool> forceRefresh();
+  Future<Map<String, dynamic>> fetchAndGetAllFlags({String? lastModified});
+
+  // === Component Accessors ===
+  CFClientFeatureFlags get featureFlags;   // client.featureFlags.getBoolean(...)
+  CFClientEvents get events;               // client.events.trackEvent(...)
+  CFClientListeners get listeners;         // client.listeners.addConfigListener(...)
+  CFClientUserManagement get user;         // client.user.addProperty(...)
+  CFClientSessionManagement get session;   // client.session.getCurrentSessionId()
+  CFClientRecovery get recovery;           // client.recovery.performSystemHealthCheck()
+  FeatureFlags get typed;                  // Type-safe feature flags
+
+  // === Lifecycle ===
   Future<void> shutdown();
 }
 ```
@@ -1677,10 +1731,17 @@ Configuration builder for SDK initialization.
 
 ```dart
 class CFConfig {
-  static CFConfigBuilder builder(String clientKey);
-  
-  // Core properties
+  // === Factory Methods (Recommended) ===
+  static CFConfig simple(String clientKey);
+  static CFConfig development(String clientKey);
+  static CFConfig production(String clientKey);
+  static CFConfig testing(String clientKey);
+  static CFConfig smart(String clientKey);  // Auto-detects environment
+  static Builder builder(String clientKey);
+
+  // === Instance Properties ===
   String get clientKey;
+  String get baseApiUrl;
   bool get debugLoggingEnabled;
   bool get offlineMode;
   int get eventsFlushIntervalMs;
@@ -1688,13 +1749,47 @@ class CFConfig {
   // ... additional properties
 }
 
-class CFConfigBuilder {
-  CFConfigBuilder debugLoggingEnabled(bool enabled);
-  CFConfigBuilder eventsFlushIntervalMs(int interval);
-  CFConfigBuilder networkConnectionTimeoutMs(int timeout);
-  CFConfigBuilder offlineMode(bool offline);
-  // ... additional builder methods
-  CFConfig build();
+class Builder {
+  // Logging
+  Builder setDebugLoggingEnabled(bool enabled);
+  Builder setLoggingEnabled(bool enabled);
+  Builder setLogLevel(String level);  // 'debug', 'info', 'warning', 'error'
+
+  // Events
+  Builder setEventsQueueSize(int size);
+  Builder setEventsFlushIntervalMs(int ms);
+  Builder setEventsFlushTimeSeconds(int seconds);
+
+  // Summaries
+  Builder setSummariesQueueSize(int size);
+  Builder setSummariesFlushIntervalMs(int ms);
+  Builder setSummariesFlushTimeSeconds(int seconds);
+
+  // Network
+  Builder setNetworkConnectionTimeoutMs(int ms);
+  Builder setNetworkReadTimeoutMs(int ms);
+  Builder setSdkSettingsCheckIntervalMs(int ms);
+
+  // Polling
+  Builder setBackgroundPollingIntervalMs(int ms);
+  Builder setReducedPollingIntervalMs(int ms);
+  Builder setDisableBackgroundPolling(bool disabled);
+  Builder setUseReducedPollingWhenBatteryLow(bool use);
+
+  // Auto-refresh
+  Builder setAutoRefreshOnEventFlush(bool enabled);
+  Builder setAutoRefreshOnUserChange(bool enabled);
+  Builder setAutoRefreshDelayMs(int ms);
+  Builder setUserChangeRefreshDebounceMs(int ms);
+
+  // Storage
+  Builder setOfflineMode(bool enabled);
+  Builder setLocalStorageEnabled(bool enabled);
+  Builder setMaxStoredEvents(int max);
+  Builder setConfigCacheTtlSeconds(int seconds);
+
+  // Build (returns CFResult, not CFConfig!)
+  CFResult<CFConfig> build();
 }
 ```
 
@@ -1732,37 +1827,55 @@ class CFUserBuilder {
 #### SDK Initialization Fails
 
 ```dart
-// Check client key
-if (config.clientKey.isEmpty) {
-  throw Exception('Client key is required');
+// Check configuration build result
+final configResult = CFConfig.builder('client-key')
+    .setDebugLoggingEnabled(true)
+    .build();
+
+if (!configResult.isSuccess) {
+  print('Config error: ${configResult.getErrorMessage()}');
+  return;
 }
+
+final config = configResult.getOrThrow();
 
 // Check user ID
 if (user.userCustomerId == null || user.userCustomerId!.isEmpty) {
   throw Exception('User ID is required');
 }
 
-// Check network connectivity
-final client = CFClient.getInstance();
-client?.addConnectionStatusListener((status) {
-  if (status == ConnectionStatus.disconnected) {
-    print('Network connectivity issues detected');
-  }
-});
+// Initialize with error handling
+try {
+  final client = await CFClient.initialize(config, user);
+} on SDKInitializationException catch (e) {
+  print('SDK init failed: ${e.message}');
+  print('Failed at step: ${e.failedStep}');
+  print('Completed steps: ${e.completedSteps}');
+}
+
+// Check initialization state
+if (!CFClient.isInitialized()) {
+  print('SDK not initialized');
+}
 ```
 
 #### Feature Flags Not Updating
 
 ```dart
-// Verify listener registration
-client?.addFeatureFlagListener('flag_key', (key, value) {
-  print('Flag updated: $key = $value');
+// Verify listener registration (use addConfigListener)
+client?.addConfigListener<bool>('flag_key', (newValue) {
+  print('Flag updated to: $newValue');
 });
 
 // Check polling configuration
 final config = CFConfig.builder('client-key')
     .setSdkSettingsCheckIntervalMs(30000) // Check every 30 seconds
-    .build();
+    .build()
+    .getOrThrow();
+
+// Force refresh manually
+final success = await client?.forceRefresh();
+print('Refresh success: $success');
 
 // The SDK automatically handles offline mode
 // Feature flags will use cached values when offline
@@ -1775,15 +1888,54 @@ final config = CFConfig.builder('client-key')
 final config = CFConfig.builder('client-key')
     .setEventsFlushIntervalMs(5000) // Flush every 5 seconds
     .setEventsQueueSize(50) // Flush when 50 events queued
-    .build();
+    .build()
+    .getOrThrow();
 
-// Verify event structure
-await client?.trackEvent('valid_event', properties: {
+// Verify event structure and check result
+final result = await client?.trackEvent('valid_event', properties: {
   'string_prop': 'value',
   'number_prop': 123,
   'boolean_prop': true,
-  // Avoid complex nested objects
+  'platform': 'Flutter',
 });
+
+if (result?.isSuccess != true) {
+  print('Event tracking failed: ${result?.getErrorMessage()}');
+}
+
+// Force flush events
+await client?.flushEvents();
+
+// Check pending event count
+int pending = client?.getPendingEventCount() ?? 0;
+print('Pending events: $pending');
+```
+
+#### User Switching Issues
+
+```dart
+// Proper user switching pattern
+Future<void> switchToNewUser(String userId) async {
+  final client = CFClient.getInstance();
+
+  // 1. Clear all listeners FIRST
+  client?.clearAllConfigListeners();
+
+  // 2. Create new user
+  final newUser = CFUser.builder(userId)
+      .addStringProperty('platform', 'Flutter')
+      .addBooleanProperty('is_logged_in', true)
+      .build();
+
+  // 3. Reinitialize (handles shutdown automatically)
+  final newClient = await CFClient.reinitialize(config, newUser);
+
+  // 4. Re-setup listeners
+  _setupListeners(newClient);
+
+  // 5. Force refresh
+  await newClient.forceRefresh();
+}
 ```
 
 ### Debug Mode

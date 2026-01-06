@@ -32,9 +32,9 @@ void main() {
           futures.add(
             Future(() async {
               // Simulate cache write operations through flag evaluations
-              client.getBoolean('concurrent_cache_write_$i', false);
-              client.getString('concurrent_cache_string_$i', 'default_$i');
-              client.getNumber('concurrent_cache_number_$i', i.toDouble());
+              client.getValue<bool>('concurrent_cache_write_$i', false);
+              client.getValue<String>('concurrent_cache_string_$i', 'default_$i');
+              client.getValue<double>('concurrent_cache_number_$i', i.toDouble());
             }),
           );
         }
@@ -44,7 +44,7 @@ void main() {
       test('should handle concurrent cache reads under stress', () async {
         // Pre-populate cache
         for (int i = 0; i < 100; i++) {
-          client.getBoolean('read_stress_flag_$i', false);
+          client.getValue<bool>('read_stress_flag_$i', false);
         }
         final futures = <Future<bool>>[];
         // Create concurrent read operations
@@ -52,7 +52,7 @@ void main() {
           final flagIndex = i % 100;
           futures.add(
             Future(
-              () => client.getBoolean('read_stress_flag_$flagIndex', false),
+              () => client.getValue<bool>('read_stress_flag_$flagIndex', false),
             ),
           );
         }
@@ -64,12 +64,12 @@ void main() {
         for (int i = 0; i < 300; i++) {
           if (i % 3 == 0) {
             // Write operation
-            futures.add(Future(() => client.getBoolean('mixed_rw_$i', false)));
+            futures.add(Future(() => client.getValue<bool>('mixed_rw_$i', false)));
           } else if (i % 3 == 1) {
             // Read operation (accessing previously written data)
             final readIndex = (i ~/ 3) * 3;
             futures.add(
-              Future(() => client.getBoolean('mixed_rw_$readIndex', false)),
+              Future(() => client.getValue<bool>('mixed_rw_$readIndex', false)),
             );
           } else {
             // Complex operation
@@ -79,7 +79,7 @@ void main() {
                   'data': i,
                   'timestamp': DateTime.now().millisecondsSinceEpoch,
                 };
-                return client.getJson('mixed_rw_complex_$i', complexDefault);
+                return client.getValue<Map<String, dynamic>>('mixed_rw_complex_$i', complexDefault);
               }),
             );
           }
@@ -100,16 +100,16 @@ void main() {
         for (int cycle = 0; cycle < 50; cycle++) {
           // Populate cache
           for (int i = 0; i < 20; i++) {
-            client.getBoolean('invalidation_cycle_${cycle}_$i', false);
+            client.getValue<bool>('invalidation_cycle_${cycle}_$i', false);
           }
           // Trigger cache invalidation by changing user
-          await client.setUser(TestConfigs.getUser(TestUserType.premiumUser));
+          await client.user.setUser(TestConfigs.getUser(TestUserType.premiumUser));
           // Access cache again (should be invalidated)
           for (int i = 0; i < 20; i++) {
-            client.getBoolean('invalidation_cycle_${cycle}_$i', true);
+            client.getValue<bool>('invalidation_cycle_${cycle}_$i', true);
           }
           // Reset user
-          await client.setUser(TestConfigs.getUser(TestUserType.defaultUser));
+          await client.user.setUser(TestConfigs.getUser(TestUserType.defaultUser));
         }
         expect(true, isTrue);
       });
@@ -122,10 +122,10 @@ void main() {
             futures.add(
               Future(() async {
                 // Access cache
-                client.getBoolean('concurrent_invalidation_$i', false);
+                client.getValue<bool>('concurrent_invalidation_$i', false);
                 // Occasionally trigger invalidation
                 if (i % 10 == 0) {
-                  await client.setUser(
+                  await client.user.setUser(
                     TestConfigs.getUser(TestUserType.defaultUser),
                   );
                 }
@@ -164,7 +164,7 @@ void main() {
               },
             };
           }
-          client.getJson('large_cache_object_$i', largeObject);
+          client.getValue<Map<String, dynamic>>('large_cache_object_$i', largeObject);
         }
         // Cache should handle memory pressure gracefully
         expect(true, isTrue);
@@ -182,11 +182,11 @@ void main() {
               'large_data': List.generate(100, (j) => 'data_$j'),
             },
           };
-          client.getJson('cache_size_stress_$i', data);
+          client.getValue<Map<String, dynamic>>('cache_size_stress_$i', data);
           // Occasional access to older entries
           if (i > 100 && i % 50 == 0) {
             final oldIndex = i - 100;
-            client.getJson('cache_size_stress_$oldIndex', {});
+            client.getValue<Map<String, dynamic>>('cache_size_stress_$oldIndex', {});
           }
         }
         expect(true, isTrue);
@@ -209,7 +209,7 @@ void main() {
         }
         final stopwatch = Stopwatch()..start();
         for (final index in accessPattern) {
-          client.getBoolean('fragmentation_test_$index', false);
+          client.getValue<bool>('fragmentation_test_$index', false);
         }
         stopwatch.stop();
         // Should maintain reasonable performance despite fragmentation
@@ -219,7 +219,7 @@ void main() {
         // Create aged cache entries
         for (int age = 0; age < 20; age++) {
           for (int i = 0; i < 100; i++) {
-            client.getBoolean('aging_test_${age}_$i', false);
+            client.getValue<bool>('aging_test_${age}_$i', false);
           }
           // Simulate time passage and create newer entries
           await Future.delayed(const Duration(milliseconds: 10));
@@ -228,7 +228,7 @@ void main() {
         for (int i = 0; i < 500; i++) {
           final age = i % 20;
           final entryIndex = i % 100;
-          client.getBoolean('aging_test_${age}_$entryIndex', false);
+          client.getValue<bool>('aging_test_${age}_$entryIndex', false);
         }
         expect(true, isTrue);
       });
@@ -251,11 +251,11 @@ void main() {
             futures.add(
               Future(() async {
                 // Read current value
-                final currentValue = client.getBoolean(sharedFlagName, false);
+                final currentValue = client.getValue<bool>(sharedFlagName, false);
                 // Simulate some processing time
                 await Future.delayed(const Duration(microseconds: 100));
                 // Read again to check consistency
-                final secondValue = client.getBoolean(sharedFlagName, false);
+                final secondValue = client.getValue<bool>(sharedFlagName, false);
                 // Values should be consistent
                 expect(currentValue, equals(secondValue));
               }),
@@ -269,17 +269,17 @@ void main() {
         // Simulate various edge cases that could cause corruption
         for (int i = 0; i < 200; i++) {
           // Normal operation
-          client.getBoolean('corruption_test_$i', false);
+          client.getValue<bool>('corruption_test_$i', false);
           // Simulate potential corruption scenarios
           if (i % 20 == 0) {
             // Rapid user changes
-            await client.setUser(TestConfigs.getUser(TestUserType.premiumUser));
-            await client.setUser(TestConfigs.getUser(TestUserType.defaultUser));
+            await client.user.setUser(TestConfigs.getUser(TestUserType.premiumUser));
+            await client.user.setUser(TestConfigs.getUser(TestUserType.defaultUser));
           }
           if (i % 30 == 0) {
             // Large data operations
             final largeData = {'data': 'x' * 10000};
-            client.getJson('corruption_large_$i', largeData);
+            client.getValue<Map<String, dynamic>>('corruption_large_$i', largeData);
           }
         }
         // System should recover from any corruption

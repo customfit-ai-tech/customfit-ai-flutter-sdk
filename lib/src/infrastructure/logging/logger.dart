@@ -14,7 +14,7 @@ enum LogLevel {
   final int value;
 }
 
-/// SDK logging utility class that provides enhanced logging capabilities
+/// SDK logging utility class that provides clean, minimal logging
 class Logger {
   /// Whether logging is enabled
   static bool enabled = true;
@@ -25,11 +25,11 @@ class Logger {
   /// Whether test mode is enabled (suppresses actual logging)
   static bool testMode = false;
 
-  /// Log prefix to identify the SDK platform
-  static const String logPrefix = 'Customfit.ai-SDK [Flutter]';
+  /// Log prefix - short and clean
+  static const String logPrefix = 'CF';
 
-  /// Current log level
-  static LogLevel currentLevel = LogLevel.info;
+  /// Current log level - default to WARNING for production
+  static LogLevel currentLevel = LogLevel.warning;
 
   /// Get formatted timestamp
   static String _getTimestamp() {
@@ -48,29 +48,13 @@ class Logger {
     }
   }
 
-  /// Enhanced console output with emoji indicators
+  /// Clean console output without emojis
   static void _directConsoleOutput(String message) {
-    if (testMode) return; // Skip console output in test mode
+    if (testMode) return;
 
     final timestamp = _getTimestamp();
-    String output;
-
-    if (message.contains('API POLL')) {
-      output = '[$timestamp] $logPrefix 📡 $message';
-    } else if (message.contains('SUMMARY')) {
-      output = '[$timestamp] $logPrefix 📊 $message';
-    } else if (message.contains('CONFIG VALUE') ||
-        message.contains('CONFIG UPDATE')) {
-      output = '[$timestamp] $logPrefix 🔧 $message';
-    } else if (message.contains('TRACK') || message.contains('🔔')) {
-      output = '[$timestamp] $logPrefix 🔔 $message';
-    } else {
-      output = '[$timestamp] $logPrefix $message';
-    }
-
-    // Always use print for direct console output
     // ignore: avoid_print
-    print(output);
+    print('[$timestamp] $logPrefix $message');
   }
 
   /// Log a trace message (most verbose)
@@ -222,55 +206,49 @@ class Logger {
     }
   }
 
-  /// Log a network request
-  static void network(String method, String url, [int? status]) {
-    final message = status != null ? '$method $url - $status' : '$method $url';
+  /// Log HTTP request/response in one line
+  /// Format: METHOD /path → STATUS (duration)
+  static void http(String method, String path, int? status, [int? durationMs]) {
+    // Extract just the path from full URL
+    final shortPath = _extractPath(path);
+    final duration = durationMs != null ? ' (${durationMs}ms)' : '';
+    final statusStr = status != null ? ' → $status' : '';
+    final message = '$method $shortPath$statusStr$duration';
 
-    if (status != null && status >= 200 && status < 300) {
-      d('📡 $message');
-    } else if (status != null && status >= 400) {
-      w('📡 $message');
+    if (status != null && status >= 400) {
+      w('[HTTP] $message');
     } else {
-      d('📡 $message');
+      d('[HTTP] $message');
     }
+  }
+
+  /// Extract path from URL for cleaner logging
+  static String _extractPath(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.path.isEmpty ? '/' : uri.path;
+    } catch (_) {
+      return url;
+    }
+  }
+
+  /// Log a network request (legacy method - use http() instead)
+  static void network(String method, String url, [int? status]) {
+    http(method, url, status);
   }
 
   /// Log a configuration update
   static void config(String message) {
-    i('🔧 $message');
+    i('[CONFIG] $message');
   }
 
   /// Log a tracking event
   static void track(String message) {
-    i('🔔 $message');
+    d('[TRACK] $message');
   }
 
   /// Log a summary event
   static void summary(String message) {
-    i('📊 $message');
-  }
-
-  /// Log with a custom emoji
-  static void emoji(String emoji, String message,
-      [LogLevel level = LogLevel.info]) {
-    final formattedMessage = '$emoji $message';
-
-    switch (level) {
-      case LogLevel.trace:
-        trace(formattedMessage);
-        break;
-      case LogLevel.debug:
-        debug(formattedMessage);
-        break;
-      case LogLevel.info:
-        info(formattedMessage);
-        break;
-      case LogLevel.warning:
-        warning(formattedMessage);
-        break;
-      case LogLevel.error:
-        error(formattedMessage);
-        break;
-    }
+    d('[SUMMARY] $message');
   }
 }

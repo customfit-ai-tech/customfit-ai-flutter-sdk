@@ -20,7 +20,7 @@ void main() {
         final stopwatch = Stopwatch()..start();
         // Perform background operations
         for (int i = 0; i < 20; i++) {
-          client.getBoolean('bg_perf_flag_$i', false);
+          client.getValue<bool>('bg_perf_flag_$i', false);
           client.trackEvent('bg_perf_event_$i');
         }
         stopwatch.stop();
@@ -28,13 +28,13 @@ void main() {
       });
       test('should handle memory optimization in background', () {
         // Test memory usage optimization
-        expect(client.getBoolean('memory_optimized', true), isA<bool>());
-        expect(client.getNumber('memory_usage_mb', 10.0), lessThan(50.0));
+        expect(client.getValue<bool>('memory_optimized', true), isA<bool>());
+        expect(client.getValue<double>('memory_usage_mb', 10.0), lessThan(50.0));
       });
       test('should handle background task scheduling', () {
         // Test background task scheduling
-        expect(client.getBoolean('scheduled_task', true), isA<bool>());
-        expect(client.getString('task_schedule', 'background'),
+        expect(client.getValue<bool>('scheduled_task', true), isA<bool>());
+        expect(client.getValue<String>('task_schedule', 'background'),
             equals('background'));
       });
       test('should handle high volume background event queuing', () {
@@ -59,8 +59,8 @@ void main() {
         // Simulate sustained background activity
         for (int batch = 0; batch < 10; batch++) {
           for (int i = 0; i < 100; i++) {
-            client.getBoolean('resource_flag_${batch}_$i', false);
-            client.getString('resource_string_${batch}_$i', 'default');
+            client.getValue<bool>('resource_flag_${batch}_$i', false);
+            client.getValue<String>('resource_string_${batch}_$i', 'default');
             if (i % 10 == 0) {
               client.trackEvent('resource_event_${batch}_$i');
             }
@@ -74,7 +74,7 @@ void main() {
         // Concurrent background operations
         for (int i = 0; i < 50; i++) {
           futures
-              .add(Future(() => client.getBoolean('concurrent_bg_$i', false)));
+              .add(Future(() => client.getValue<bool>('concurrent_bg_$i', false)));
           futures
               .add(Future(() => client.trackEvent('concurrent_bg_event_$i')));
         }

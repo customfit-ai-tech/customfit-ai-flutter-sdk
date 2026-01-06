@@ -48,56 +48,56 @@ void main() {
       });
       test('should cache feature flag values', () async {
         // First call - get whatever value the system returns
-        final flag1 = client.getBoolean('cached_flag', true);
+        final flag1 = client.getValue<bool>('cached_flag', true);
         expect(flag1, isA<bool>()); // Just check it's a boolean
         // Second call with different default - should return a boolean
-        final flag2 = client.getBoolean('cached_flag', false);
+        final flag2 = client.getValue<bool>('cached_flag', false);
         expect(flag2, isA<bool>()); // Just check it's a boolean
         // In a working cache system, both calls should return the same value
         // But for now, let's just ensure no crashes
       });
       test('should cache string flags correctly', () async {
-        final string1 = client.getString('cached_string', 'default');
+        final string1 = client.getValue<String>('cached_string', 'default');
         expect(string1, isA<String>()); // Just check it's a string
-        final string2 = client.getString('cached_string', 'different');
+        final string2 = client.getValue<String>('cached_string', 'different');
         expect(string2, isA<String>()); // Just check it's a string
       });
       test('should cache number flags correctly', () async {
-        final number1 = client.getNumber('cached_number', 0.0);
+        final number1 = client.getValue<double>('cached_number', 0.0);
         expect(number1, isA<double>()); // Just check it's a number
-        final number2 = client.getNumber('cached_number', 100.0);
+        final number2 = client.getValue<double>('cached_number', 100.0);
         expect(number2, isA<double>()); // Just check it's a number
       });
       test('should cache JSON flags correctly', () async {
-        final json1 = client.getJson('cached_json', {});
+        final json1 = client.getValue<Map<String, dynamic>>('cached_json', {});
         expect(json1, isA<Map<String, dynamic>>()); // Just check it's a map
-        final json2 = client.getJson('cached_json', {'different': true});
+        final json2 = client.getValue<Map<String, dynamic>>('cached_json', {'different': true});
         expect(json2, isA<Map<String, dynamic>>()); // Just check it's a map
       });
       test('should handle cache invalidation', () async {
         // Get initial cached value
-        final initial = client.getBoolean('invalidation_test', false);
+        final initial = client.getValue<bool>('invalidation_test', false);
         expect(initial, isA<bool>());
         // Simulate cache invalidation (e.g., configuration update)
         // After invalidation, should fetch fresh value
-        final afterInvalidation = client.getBoolean('invalidation_test', true);
+        final afterInvalidation = client.getValue<bool>('invalidation_test', true);
         expect(afterInvalidation, isA<bool>());
       });
       test('should handle cache expiration', () async {
         // Test cache expiration behavior
-        final value1 = client.getString('expiring_flag', 'initial');
+        final value1 = client.getValue<String>('expiring_flag', 'initial');
         expect(value1, isA<String>());
         // Simulate time passing and cache expiring
-        final value2 = client.getString('expiring_flag', 'expired');
+        final value2 = client.getValue<String>('expiring_flag', 'expired');
         expect(value2, isA<String>());
       });
       test('should handle cache size limits', () async {
         // Fill cache with multiple flags
         for (int i = 0; i < 100; i++) {
-          client.getBoolean('cache_flag_$i', i % 2 == 0);
+          client.getValue<bool>('cache_flag_$i', i % 2 == 0);
         }
         // Cache should handle size limits gracefully
-        final testFlag = client.getBoolean('test_flag', true);
+        final testFlag = client.getValue<bool>('test_flag', true);
         expect(testFlag, isA<bool>());
       });
     });
@@ -110,7 +110,7 @@ void main() {
             .withRealStorage()
             .build();
         // Store some configuration
-        final flag1 = client1.getBoolean('persistent_flag', true);
+        final flag1 = client1.getValue<bool>('persistent_flag', true);
         expect(flag1, isA<bool>());
         // End first session
         await CFClient.shutdownSingleton();
@@ -122,7 +122,7 @@ void main() {
             .withRealStorage()
             .build();
         // Should retrieve persisted configuration
-        final flag2 = client2.getBoolean('persistent_flag', false);
+        final flag2 = client2.getValue<bool>('persistent_flag', false);
         expect(flag2, isA<bool>());
       });
       test('should persist user data across sessions', () async {
@@ -151,7 +151,7 @@ void main() {
             .build();
         // Should handle corrupted storage without crashing
         expect(client, isNotNull);
-        final flag = client.getBoolean('corruption_test', false);
+        final flag = client.getValue<bool>('corruption_test', false);
         expect(flag, isA<bool>());
       });
       test('should handle storage unavailability', () async {
@@ -161,7 +161,7 @@ void main() {
             .build(); // Uses mock storage
         // Should work even when real storage is unavailable
         expect(client, isNotNull);
-        final flag = client.getBoolean('storage_unavailable', true);
+        final flag = client.getValue<bool>('storage_unavailable', true);
         expect(flag, isA<bool>());
       });
     });
@@ -208,7 +208,7 @@ void main() {
             .withRealStorage()
             .build();
         // Get cached flag
-        final cachedFlag = client.getBoolean('sync_test_flag', false);
+        final cachedFlag = client.getValue<bool>('sync_test_flag', false);
         expect(cachedFlag, isA<bool>());
         // Should sync with server when connection is available
         expect(client, isNotNull);
@@ -221,7 +221,7 @@ void main() {
             .withRealStorage()
             .build();
         // Simulate local and server changes
-        final flag = client.getBoolean('conflict_flag', true);
+        final flag = client.getValue<bool>('conflict_flag', true);
         expect(flag, isA<bool>());
         // Should resolve conflicts appropriately
         expect(client, isNotNull);
@@ -234,7 +234,7 @@ void main() {
             .withRealStorage()
             .build();
         // When server data is available, it should take precedence
-        final flag = client.getBoolean('priority_test', false);
+        final flag = client.getValue<bool>('priority_test', false);
         expect(flag, isA<bool>());
       });
     });
@@ -248,7 +248,7 @@ void main() {
         final startTime = DateTime.now();
         // Perform multiple cache operations
         for (int i = 0; i < 100; i++) {
-          client.getBoolean('perf_flag_$i', i % 2 == 0);
+          client.getValue<bool>('perf_flag_$i', i % 2 == 0);
         }
         final endTime = DateTime.now();
         final duration = endTime.difference(startTime);
@@ -282,7 +282,7 @@ void main() {
         final readFutures = List.generate(
             50,
             (i) => Future(
-                () => client.getBoolean('concurrent_read_$i', i % 2 == 0)));
+                () => client.getValue<bool>('concurrent_read_$i', i % 2 == 0)));
         // Concurrent write operations
         final writeFutures =
             List.generate(50, (i) => client.trackEvent('concurrent_write_$i'));
@@ -301,7 +301,7 @@ void main() {
             .withRealStorage()
             .build();
         // Should not crash on storage errors
-        expect(() => client.getBoolean('storage_error_test', false),
+        expect(() => client.getValue<bool>('storage_error_test', false),
             returnsNormally);
         expect(() => client.trackEvent('storage_error_event'), returnsNormally);
       });
@@ -312,7 +312,7 @@ void main() {
             .withRealStorage()
             .build();
         // Should recover from corrupted cache
-        final flag = client.getBoolean('corruption_recovery', true);
+        final flag = client.getValue<bool>('corruption_recovery', true);
         expect(flag, isA<bool>());
       });
       test('should handle insufficient storage space', () async {
@@ -350,7 +350,7 @@ void main() {
               .build();
           expect(client, isNotNull);
           // Test storage functionality with each config
-          final flag = client.getBoolean('config_storage_test', true);
+          final flag = client.getValue<bool>('config_storage_test', true);
           expect(flag, isA<bool>());
           await client.trackEvent('storage_config_${config.name}');
         }
@@ -362,7 +362,7 @@ void main() {
             .withTestUser(TestUserType.defaultUser)
             .build(); // Uses mocked storage by default
         expect(mockedClient, isNotNull);
-        final mockedFlag = mockedClient.getBoolean('mock_storage_test', false);
+        final mockedFlag = mockedClient.getValue<bool>('mock_storage_test', false);
         expect(mockedFlag, isA<bool>());
         await CFClient.shutdownSingleton();
         CFClient.clearInstance();
@@ -373,7 +373,7 @@ void main() {
             .withRealStorage()
             .build();
         expect(realClient, isNotNull);
-        final realFlag = realClient.getBoolean('real_storage_test', false);
+        final realFlag = realClient.getValue<bool>('real_storage_test', false);
         expect(realFlag, isA<bool>());
       });
       test('should work with TestClientBuilder storage options', () async {
@@ -384,7 +384,7 @@ void main() {
             .withInitialFlags({'storage_enhanced': true}).build();
         expect(client, isNotNull);
         // Test that storage works with builder options
-        final enhanced = client.getBoolean('storage_enhanced', false);
+        final enhanced = client.getValue<bool>('storage_enhanced', false);
         expect(enhanced,
             isA<bool>()); // Just check it's a boolean, don't expect specific value
         await client.trackEvent('builder_storage_test',
@@ -397,7 +397,7 @@ void main() {
             .withTestUser(TestUserType.defaultUser)
             .withRealStorage()
             .build();
-        final value = client.getString('test_flag', 'default');
+        final value = client.getValue<String>('test_flag', 'default');
         expect(value, isA<String>());
         await CFClient.shutdownSingleton();
         CFClient.clearInstance();

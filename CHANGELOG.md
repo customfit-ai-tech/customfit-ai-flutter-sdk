@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.5 - Code Quality and Deprecation Fixes
+
+### Improvements
+- Removed deprecated `encryptedSharedPreferences` parameter (auto-migrates to custom ciphers)
+- Code cleanup: removed unused imports and fields
+- Improved analyzer compliance (zero warnings)
+
+### Technical
+- Updated secure storage to use automatic cipher migration
+- Cleaned up SummaryManager, ConfigManager, and HttpClientImpl
+
 ## 0.1.4 - Infrastructure and Code Quality Improvements
 
 ### Improvements

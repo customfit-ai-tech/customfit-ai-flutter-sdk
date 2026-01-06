@@ -471,6 +471,29 @@ class CFClientFeatureFlags {
     return null;
   }
 
+  /// Get a feature flag value with generic type support
+  ///
+  /// This is the recommended unified method for retrieving feature flag values.
+  /// It supports all standard types: bool, String, double, num, int, and `Map<String, dynamic>`.
+  ///
+  /// Returns the flag value if found and valid, otherwise returns [defaultValue].
+  /// Automatically tracks summary for flag evaluation and includes graceful degradation.
+  ///
+  /// Example:
+  /// ```dart
+  /// final isEnabled = client.getValue<bool>('new_feature', false);
+  /// final theme = client.getValue<String>('app_theme', 'light');
+  /// final maxRetries = client.getValue<double>('max_retries', 3.0);
+  /// final config = client.getValue<Map<String, dynamic>>('feature_config', {});
+  /// ```
+  T getValue<T>(String key, T defaultValue) {
+    return _evaluateWithDegradation<T>(
+      key: key,
+      defaultValue: defaultValue,
+      logType: T.toString(),
+    );
+  }
+
   /// Get graceful degradation metrics
   Map<String, dynamic> getDegradationMetrics() {
     return _gracefulDegradation.getDegradationSummary();

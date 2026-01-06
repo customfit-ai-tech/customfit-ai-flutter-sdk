@@ -27,8 +27,7 @@ void main() {
       expect(() => Logger.config('Configuration updated'), returnsNormally);
       expect(() => Logger.track('Event tracked'), returnsNormally);
       expect(() => Logger.summary('Summary generated'), returnsNormally);
-      expect(() => Logger.emoji('🎉', 'Success'), returnsNormally);
-      expect(() => Logger.emoji('❌', 'Error', LogLevel.error), returnsNormally);
+      expect(() => Logger.http('GET', '/api/test', 200, 45), returnsNormally);
     });
 
     test('should have correct LogLevel enum values', () {
@@ -50,7 +49,7 @@ void main() {
       expect(Logger.enabled, isA<bool>());
       expect(Logger.debugEnabled, isA<bool>());
       expect(Logger.testMode, isA<bool>());
-      expect(Logger.logPrefix, equals('Customfit.ai-SDK [Flutter]'));
+      expect(Logger.logPrefix, equals('CF'));
       expect(Logger.currentLevel, isA<LogLevel>());
     });
   });

@@ -1,0 +1,113 @@
+name: Auto-Generate Changelog
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ published ]
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get package version
+        id: package_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Package version: $VERSION"
+
+      - name: Generate Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: ".github/changelog-config.json"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          toTag: ${{ github.ref_name }}
+          fetchViaCommits: true
+          commitMode: true
+
+      - name: Create/Update CHANGELOG.md
+        run: |
+          # Create changelog header if file doesn't exist
+          if [ ! -f CHANGELOG.md ]; then
+            cat > CHANGELOG.md << 'EOF'
+          # Changelog
+
+          All notable changes to this project will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          EOF
+          fi
+
+          # Prepare new changelog entry
+          cat > temp_changelog.md << 'EOF'
+          ## [${{ steps.package_version.outputs.version }}] - $(date +%Y-%m-%d)
+
+          ${{ steps.changelog.outputs.changelog }}
+
+          EOF
+
+          # Insert new entry after the header
+          head -n 6 CHANGELOG.md > new_changelog.md
+          cat temp_changelog.md >> new_changelog.md
+          tail -n +7 CHANGELOG.md >> new_changelog.md
+          mv new_changelog.md CHANGELOG.md
+          rm temp_changelog.md
+
+      - name: Commit changelog
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update changelog for v${{ steps.package_version.outputs.version }}"
+            git push
+          fi
+
+      - name: Comment on PR with changelog preview
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const changelog = `${{ steps.changelog.outputs.changelog }}`;
+            const body = `## 📋 Changelog Preview
+
+            Here's what will be added to the changelog when this PR is merged:
+
+            ### Version ${{ steps.package_version.outputs.version }}
+
+            ${changelog}
+
+            ---
+            *This changelog preview is automatically generated based on conventional commits and PR labels.*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            }); 

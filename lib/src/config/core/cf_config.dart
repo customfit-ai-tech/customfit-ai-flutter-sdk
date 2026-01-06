@@ -205,6 +205,19 @@ class CFConfig {
   /// List of data types to store securely
   final List<String> secureDataTypes;
 
+  // Auto-refresh configuration
+  /// Whether to automatically refresh configs after events are flushed
+  final bool autoRefreshOnEventFlush;
+
+  /// Delay in milliseconds before auto-refreshing configs after event flush (debounce)
+  final int autoRefreshDelayMs;
+
+  /// Whether to automatically refresh configs after user properties change
+  final bool autoRefreshOnUserChange;
+
+  /// Delay in milliseconds before auto-refreshing configs after user property change (debounce)
+  final int userChangeRefreshDebounceMs;
+
   /// Get dimension ID from client key (cached for performance)
   String? get dimensionId {
     return _JWTParser.getDimensionId(clientKey);
@@ -246,6 +259,25 @@ class CFConfig {
     return CFEnvironment.production;
   }
 
+  /// Create a simple configuration with sensible defaults
+  ///
+  /// This is the **recommended** factory for most users. It provides:
+  /// - Auto-detected environment (production vs staging)
+  /// - Optimized defaults for mobile apps
+  /// - Local caching enabled
+  /// - Auto-refresh on events and user changes
+  ///
+  /// For 90% of use cases, this is all you need:
+  /// ```dart
+  /// final config = CFConfig.simple('your-client-key');
+  /// ```
+  ///
+  /// For more control, use `CFConfig.builder()` or preset factories like
+  /// `CFConfig.development()` or `CFConfig.production()`.
+  static CFConfig simple(String clientKey) {
+    return smart(clientKey);
+  }
+
   /// Create a development configuration profile with optimized settings for development
   ///
   /// Features:
@@ -272,6 +304,8 @@ class CFConfig {
         .setSdkSettingsCheckIntervalMs(30000) // Check every 30 seconds
         .setLocalStorageEnabled(true)
         .setConfigCacheTtlSeconds(300) // 5 minutes cache in dev
+        .setAutoRefreshOnEventFlush(true)
+        .setAutoRefreshOnUserChange(true)
         .build();
     if (result.isSuccess) {
       return result.getOrNull()!;
@@ -296,7 +330,7 @@ class CFConfig {
     final result = CFConfig.builder(clientKey)
         .setDebugLoggingEnabled(false)
         .setLoggingEnabled(true)
-        .setLogLevel('error') // Only log errors in production
+        .setLogLevel('warning') // Only warnings and errors in production
         .setEventsFlushIntervalMs(30000) // Flush every 30 seconds
         .setSummariesFlushIntervalMs(30000)
         .setNetworkConnectionTimeoutMs(15000) // Longer timeout
@@ -309,6 +343,8 @@ class CFConfig {
         .setConfigCacheTtlSeconds(3600) // 1 hour cache
         .setPersistCacheAcrossRestarts(true)
         .setUseStaleWhileRevalidate(true)
+        .setAutoRefreshOnEventFlush(true)
+        .setAutoRefreshOnUserChange(true)
         .build();
     if (result.isSuccess) {
       return result.getOrNull()!;
@@ -346,6 +382,8 @@ class CFConfig {
         .setConfigCacheTtlSeconds(60) // Short cache for tests
         .setPersistCacheAcrossRestarts(false)
         .setOfflineMode(false) // Default online for tests
+        .setAutoRefreshOnEventFlush(false) // Disable in tests for predictability
+        .setAutoRefreshOnUserChange(false)
         .build();
     if (result.isSuccess) {
       return result.getOrNull()!;
@@ -377,7 +415,7 @@ class CFConfig {
         10000, // Consistent with Swift/Kotlin (changed from 30000)
     this.loggingEnabled = true,
     this.debugLoggingEnabled = false,
-    this.logLevel = 'DEBUG', // Consistent with Swift/Kotlin
+    this.logLevel = 'WARNING', // Default to WARNING for cleaner logs
     this.offlineMode = false,
     this.disableBackgroundPolling = false,
     this.backgroundPollingIntervalMs =
@@ -416,6 +454,11 @@ class CFConfig {
     // Secure storage configuration
     this.useSecureStorage = true,
     this.secureDataTypes = const ['session', 'api_keys', 'sensitive_events'],
+    // Auto-refresh configuration
+    this.autoRefreshOnEventFlush = true,
+    this.autoRefreshDelayMs = 500,
+    this.autoRefreshOnUserChange = true,
+    this.userChangeRefreshDebounceMs = 300,
   });
 
   /// Create a copy of this config with updated values
@@ -472,6 +515,11 @@ class CFConfig {
     // Secure storage parameters
     bool? useSecureStorage,
     List<String>? secureDataTypes,
+    // Auto-refresh parameters
+    bool? autoRefreshOnEventFlush,
+    int? autoRefreshDelayMs,
+    bool? autoRefreshOnUserChange,
+    int? userChangeRefreshDebounceMs,
   }) {
     return CFConfig._(
       clientKey: clientKey ?? this.clientKey,
@@ -547,6 +595,13 @@ class CFConfig {
           this.memoryMonitoringIntervalSeconds,
       useSecureStorage: useSecureStorage ?? this.useSecureStorage,
       secureDataTypes: secureDataTypes ?? this.secureDataTypes,
+      autoRefreshOnEventFlush:
+          autoRefreshOnEventFlush ?? this.autoRefreshOnEventFlush,
+      autoRefreshDelayMs: autoRefreshDelayMs ?? this.autoRefreshDelayMs,
+      autoRefreshOnUserChange:
+          autoRefreshOnUserChange ?? this.autoRefreshOnUserChange,
+      userChangeRefreshDebounceMs:
+          userChangeRefreshDebounceMs ?? this.userChangeRefreshDebounceMs,
     );
   }
 
@@ -655,7 +710,7 @@ class Builder {
   int networkReadTimeoutMs = 10000;
   bool loggingEnabled = true;
   bool debugLoggingEnabled = false;
-  String logLevel = 'DEBUG';
+  String logLevel = 'WARNING';
   bool offlineMode = false;
   bool disableBackgroundPolling = false;
   int backgroundPollingIntervalMs = 3600000;
@@ -688,6 +743,11 @@ class Builder {
   // Secure storage configuration
   bool useSecureStorage = true;
   List<String> secureDataTypes = ['session', 'api_keys', 'sensitive_events'];
+  // Auto-refresh configuration
+  bool autoRefreshOnEventFlush = true;
+  int autoRefreshDelayMs = 500;
+  bool autoRefreshOnUserChange = true;
+  int userChangeRefreshDebounceMs = 300;
 
   /// Constructor
   Builder(this.clientKey) {
@@ -1053,6 +1113,50 @@ class Builder {
     return this;
   }
 
+  /// Enable or disable auto-refresh after event flush
+  ///
+  /// When enabled, the SDK will automatically refresh feature flag configs
+  /// after events are flushed to the server. This ensures that any
+  /// targeting rules based on tracked events are immediately reflected.
+  Builder setAutoRefreshOnEventFlush(bool enabled) {
+    autoRefreshOnEventFlush = enabled;
+    return this;
+  }
+
+  /// Set the delay before auto-refreshing configs after event flush
+  ///
+  /// This debounce delay prevents excessive API calls when multiple
+  /// events are flushed in quick succession.
+  Builder setAutoRefreshDelayMs(int ms) {
+    if (ms < 0) {
+      throw ArgumentError('Auto-refresh delay must be non-negative');
+    }
+    autoRefreshDelayMs = ms;
+    return this;
+  }
+
+  /// Enable or disable auto-refresh after user property changes
+  ///
+  /// When enabled, the SDK will automatically refresh feature flag configs
+  /// after user properties are updated. This ensures that any targeting
+  /// rules based on user properties are immediately reflected.
+  Builder setAutoRefreshOnUserChange(bool enabled) {
+    autoRefreshOnUserChange = enabled;
+    return this;
+  }
+
+  /// Set the debounce delay before auto-refreshing configs after user property change
+  ///
+  /// This delay prevents excessive API calls when multiple user properties
+  /// are updated in quick succession.
+  Builder setUserChangeRefreshDebounceMs(int ms) {
+    if (ms < 0) {
+      throw ArgumentError('User change refresh debounce must be non-negative');
+    }
+    userChangeRefreshDebounceMs = ms;
+    return this;
+  }
+
   /// Build method creates immutable CFConfig with result-based error handling
   CFResult<CFConfig> build() {
     // First validate the configuration
@@ -1115,6 +1219,10 @@ class Builder {
         allowSelfSignedCertificates: allowSelfSignedCertificates,
         useSecureStorage: useSecureStorage,
         secureDataTypes: List.unmodifiable(secureDataTypes),
+        autoRefreshOnEventFlush: autoRefreshOnEventFlush,
+        autoRefreshDelayMs: autoRefreshDelayMs,
+        autoRefreshOnUserChange: autoRefreshOnUserChange,
+        userChangeRefreshDebounceMs: userChangeRefreshDebounceMs,
       );
 
       return CFResult.success(config);

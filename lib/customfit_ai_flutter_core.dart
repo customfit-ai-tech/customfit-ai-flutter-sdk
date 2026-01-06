@@ -20,6 +20,8 @@ export 'src/client/cf_client_feature_flags.dart';
 export 'src/client/cf_client_events.dart';
 export 'src/client/cf_client_listeners.dart';
 export 'src/client/cf_client_recovery.dart';
+export 'src/client/cf_client_session_management.dart';
+export 'src/client/cf_client_user_management.dart';
 
 // Recovery types - Added as per plan
 export 'src/client/cf_client_recovery.dart'

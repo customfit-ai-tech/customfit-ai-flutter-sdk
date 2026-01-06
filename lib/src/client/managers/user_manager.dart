@@ -21,23 +21,32 @@ abstract class UserManager {
   /// Clear the current user by setting an anonymous user
   CFResult<void> clearUser();
 
-  /// Add a property to the user
-  CFResult<void> addUserProperty(String key, dynamic value);
+  // MARK: - Simplified Property API (Recommended)
 
-  /// Add a string property to the user
-  CFResult<void> addStringProperty(String key, String value);
+  /// Add a property to the user (unified method)
+  ///
+  /// This is the **recommended** method for adding user properties.
+  /// Supports all types: String, num, bool, `Map<String, dynamic>`.
+  ///
+  /// Example:
+  /// ```dart
+  /// client.user.addProperty('name', 'John');
+  /// client.user.addProperty('age', 25);
+  /// client.user.addProperty('premium', true, isPrivate: true);
+  /// client.user.addProperty('preferences', {'theme': 'dark'});
+  /// ```
+  CFResult<void> addProperty(String key, dynamic value, {bool isPrivate = false});
 
-  /// Add a number property to the user
-  CFResult<void> addNumberProperty(String key, num value);
-
-  /// Add a boolean property to the user
-  CFResult<void> addBooleanProperty(String key, bool value);
-
-  /// Add a JSON property to the user
-  CFResult<void> addJsonProperty(String key, Map<String, dynamic> value);
-
-  /// Add multiple properties to the user
-  CFResult<void> addUserProperties(Map<String, dynamic> properties);
+  /// Add multiple properties to the user (unified method)
+  ///
+  /// This is the **recommended** method for adding multiple properties at once.
+  ///
+  /// Example:
+  /// ```dart
+  /// client.user.addProperties({'name': 'John', 'age': 25});
+  /// client.user.addProperties({'ssn': '123'}, isPrivate: true);
+  /// ```
+  CFResult<void> addProperties(Map<String, dynamic> properties, {bool isPrivate = false});
 
   /// Get all user properties
   Map<String, dynamic> getUserProperties();
@@ -53,23 +62,6 @@ abstract class UserManager {
 
   /// Update the application info
   CFResult<void> updateApplicationInfo(ApplicationInfo applicationInfo);
-
-  // Private property methods
-
-  /// Add a private string property to the user
-  CFResult<void> addPrivateStringProperty(String key, String value);
-
-  /// Add a private number property to the user
-  CFResult<void> addPrivateNumberProperty(String key, num value);
-
-  /// Add a private boolean property to the user
-  CFResult<void> addPrivateBooleanProperty(String key, bool value);
-
-  /// Add a private map property to the user
-  CFResult<void> addPrivateMapProperty(String key, Map<String, dynamic> value);
-
-  /// Add a private JSON property to the user
-  CFResult<void> addPrivateJsonProperty(String key, Map<String, dynamic> value);
 
   /// Remove a property from the user
   CFResult<void> removeProperty(String key);
@@ -135,8 +127,10 @@ class UserManagerImpl implements UserManager {
     );
   }
 
+  // MARK: - Simplified Property API Implementation
+
   @override
-  CFResult<void> addUserProperty(String key, dynamic value) {
+  CFResult<void> addProperty(String key, dynamic value, {bool isPrivate = false}) {
     // SECURITY FIX: Validate property key and value using CFResult pattern
     final keyValidation = CFResultValidation.validatePropertyKey(key);
     if (!keyValidation.isSuccess) {
@@ -154,62 +148,59 @@ class UserManagerImpl implements UserManager {
           'Invalid property value: ${valueValidation.getErrorMessage()}');
     }
 
-    // Use validated inputs
+    // Use validated inputs with isPrivate support
     return CFResultExtensions.catching(
       () {
         final validatedKey = keyValidation.getOrThrow();
         final validatedValue = valueValidation.getOrThrow();
-        _user = _user.addProperty(validatedKey, validatedValue);
+
+        if (isPrivate) {
+          // Add as private property based on type
+          if (validatedValue is String) {
+            _user = _user.addStringProperty(validatedKey, validatedValue, isPrivate: true);
+          } else if (validatedValue is num) {
+            _user = _user.addNumberProperty(validatedKey, validatedValue, isPrivate: true);
+          } else if (validatedValue is bool) {
+            _user = _user.addBooleanProperty(validatedKey, validatedValue, isPrivate: true);
+          } else if (validatedValue is Map<String, dynamic>) {
+            _user = _user.addJsonProperty(validatedKey, validatedValue, isPrivate: true);
+          } else {
+            _user = _user.addProperty(validatedKey, validatedValue);
+            _user = _user.markPropertyAsPrivate(validatedKey);
+          }
+        } else {
+          _user = _user.addProperty(validatedKey, validatedValue);
+        }
         _notifyUserChangeListeners();
       },
-      errorMessage: 'Failed to add user property',
+      errorMessage: 'Failed to add property',
     );
   }
 
   @override
-  CFResult<void> addStringProperty(String key, String value) {
-    return addUserProperty(key, value);
-  }
-
-  @override
-  CFResult<void> addNumberProperty(String key, num value) {
-    return addUserProperty(key, value);
-  }
-
-  @override
-  CFResult<void> addBooleanProperty(String key, bool value) {
-    return addUserProperty(key, value);
-  }
-
-  @override
-  CFResult<void> addJsonProperty(String key, Map<String, dynamic> value) {
-    return addUserProperty(key, value);
-  }
-
-  @override
-  CFResult<void> addUserProperties(Map<String, dynamic> properties) {
+  CFResult<void> addProperties(Map<String, dynamic> properties, {bool isPrivate = false}) {
     // SECURITY FIX: Validate all properties before processing using CFResult pattern
     final propertiesValidation =
         CFResultValidation.validateProperties(properties);
     if (!propertiesValidation.isSuccess) {
       Logger.w(
-          'UserManager: User properties validation failed: ${propertiesValidation.getErrorMessage()}');
+          'UserManager: Properties validation failed: ${propertiesValidation.getErrorMessage()}');
       return CFResult.error(
-          'Invalid user properties: ${propertiesValidation.getErrorMessage()}');
+          'Invalid properties: ${propertiesValidation.getErrorMessage()}');
     }
 
     return CFResultExtensions.catching(
       () {
         final validatedProperties = propertiesValidation.getOrThrow();
         for (final entry in validatedProperties.entries) {
-          final result = addUserProperty(entry.key, entry.value);
+          final result = addProperty(entry.key, entry.value, isPrivate: isPrivate);
           if (!result.isSuccess) {
             throw Exception(
                 'Failed to add property ${entry.key}: ${result.getErrorMessage()}');
           }
         }
       },
-      errorMessage: 'Failed to add user properties',
+      errorMessage: 'Failed to add properties',
     );
   }
 
@@ -284,159 +275,6 @@ class UserManagerImpl implements UserManager {
         debugPrint('Error notifying user change listener: $e');
       }
     }
-  }
-
-  // Private property method implementations
-
-  @override
-  CFResult<void> addPrivateStringProperty(String key, String value) {
-    // SECURITY FIX: Validate inputs before processing using CFResult pattern
-    final keyValidation = CFResultValidation.validatePropertyKey(key);
-    if (!keyValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private string property key validation failed: ${keyValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property key: ${keyValidation.getErrorMessage()}');
-    }
-
-    final valueValidation = CFResultValidation.validatePropertyValue(value);
-    if (!valueValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private string property value validation failed: ${valueValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property value: ${valueValidation.getErrorMessage()}');
-    }
-
-    return CFResultExtensions.catching(
-      () {
-        _user = _user.addStringProperty(
-            keyValidation.getOrThrow(), valueValidation.getOrThrow() as String,
-            isPrivate: true);
-        _notifyUserChangeListeners();
-      },
-      errorMessage: 'Failed to add private string property',
-    );
-  }
-
-  @override
-  CFResult<void> addPrivateNumberProperty(String key, num value) {
-    // SECURITY FIX: Validate inputs before processing using CFResult pattern
-    final keyValidation = CFResultValidation.validatePropertyKey(key);
-    if (!keyValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private number property key validation failed: ${keyValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property key: ${keyValidation.getErrorMessage()}');
-    }
-
-    final valueValidation = CFResultValidation.validatePropertyValue(value);
-    if (!valueValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private number property value validation failed: ${valueValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property value: ${valueValidation.getErrorMessage()}');
-    }
-
-    return CFResultExtensions.catching(
-      () {
-        _user = _user.addNumberProperty(
-            keyValidation.getOrThrow(), valueValidation.getOrThrow() as num,
-            isPrivate: true);
-        _notifyUserChangeListeners();
-      },
-      errorMessage: 'Failed to add private number property',
-    );
-  }
-
-  @override
-  CFResult<void> addPrivateBooleanProperty(String key, bool value) {
-    // SECURITY FIX: Validate inputs before processing using CFResult pattern
-    final keyValidation = CFResultValidation.validatePropertyKey(key);
-    if (!keyValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private boolean property key validation failed: ${keyValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property key: ${keyValidation.getErrorMessage()}');
-    }
-
-    final valueValidation = CFResultValidation.validatePropertyValue(value);
-    if (!valueValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private boolean property value validation failed: ${valueValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property value: ${valueValidation.getErrorMessage()}');
-    }
-
-    return CFResultExtensions.catching(
-      () {
-        _user = _user.addBooleanProperty(
-            keyValidation.getOrThrow(), valueValidation.getOrThrow() as bool,
-            isPrivate: true);
-        _notifyUserChangeListeners();
-      },
-      errorMessage: 'Failed to add private boolean property',
-    );
-  }
-
-  @override
-  CFResult<void> addPrivateMapProperty(String key, Map<String, dynamic> value) {
-    // SECURITY FIX: Validate inputs before processing using CFResult pattern
-    final keyValidation = CFResultValidation.validatePropertyKey(key);
-    if (!keyValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private map property key validation failed: ${keyValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property key: ${keyValidation.getErrorMessage()}');
-    }
-
-    final valueValidation = CFResultValidation.validatePropertyValue(value);
-    if (!valueValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private map property value validation failed: ${valueValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property value: ${valueValidation.getErrorMessage()}');
-    }
-
-    return CFResultExtensions.catching(
-      () {
-        _user = _user.addMapProperty(keyValidation.getOrThrow(),
-            valueValidation.getOrThrow() as Map<String, dynamic>,
-            isPrivate: true);
-        _notifyUserChangeListeners();
-      },
-      errorMessage: 'Failed to add private map property',
-    );
-  }
-
-  @override
-  CFResult<void> addPrivateJsonProperty(
-      String key, Map<String, dynamic> value) {
-    // SECURITY FIX: Validate inputs before processing using CFResult pattern
-    final keyValidation = CFResultValidation.validatePropertyKey(key);
-    if (!keyValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private JSON property key validation failed: ${keyValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property key: ${keyValidation.getErrorMessage()}');
-    }
-
-    final valueValidation = CFResultValidation.validatePropertyValue(value);
-    if (!valueValidation.isSuccess) {
-      Logger.w(
-          'UserManager: Private JSON property value validation failed: ${valueValidation.getErrorMessage()}');
-      return CFResult.error(
-          'Invalid property value: ${valueValidation.getErrorMessage()}');
-    }
-
-    return CFResultExtensions.catching(
-      () {
-        _user = _user.addJsonProperty(keyValidation.getOrThrow(),
-            valueValidation.getOrThrow() as Map<String, dynamic>,
-            isPrivate: true);
-        _notifyUserChangeListeners();
-      },
-      errorMessage: 'Failed to add private JSON property',
-    );
   }
 
   @override

@@ -39,36 +39,36 @@ void main() {
       });
       test('should return cached values on subsequent calls', () {
         // First call - cache miss
-        final firstCall = client.getBoolean('cache_test_flag', false);
+        final firstCall = client.getValue<bool>('cache_test_flag', false);
         // Subsequent calls - cache hit
         for (int i = 0; i < 10; i++) {
-          final cachedCall = client.getBoolean('cache_test_flag', false);
+          final cachedCall = client.getValue<bool>('cache_test_flag', false);
           expect(cachedCall, equals(firstCall));
         }
       });
       test('should cache different flag types independently', () {
         // Cache different types
-        final boolValue = client.getBoolean('multi_type_flag', false);
-        final stringValue = client.getString('multi_type_flag', 'default');
-        final numberValue = client.getNumber('multi_type_flag', 0);
-        final jsonValue = client.getJson('multi_type_flag', {});
+        final boolValue = client.getValue<bool>('multi_type_flag', false);
+        final stringValue = client.getValue<String>('multi_type_flag', 'default');
+        final numberValue = client.getValue<double>('multi_type_flag', 0);
+        final jsonValue = client.getValue<Map<String, dynamic>>('multi_type_flag', {});
         // Verify cached values remain consistent
-        expect(client.getBoolean('multi_type_flag', false), equals(boolValue));
-        expect(client.getString('multi_type_flag', 'default'),
+        expect(client.getValue<bool>('multi_type_flag', false), equals(boolValue));
+        expect(client.getValue<String>('multi_type_flag', 'default'),
             equals(stringValue));
-        expect(client.getNumber('multi_type_flag', 0), equals(numberValue));
-        expect(client.getJson('multi_type_flag', {}), equals(jsonValue));
+        expect(client.getValue<double>('multi_type_flag', 0), equals(numberValue));
+        expect(client.getValue<Map<String, dynamic>>('multi_type_flag', {}), equals(jsonValue));
       });
       test('should measure cache performance improvement', () {
         final stopwatch = Stopwatch();
         // Test with the same flag repeated many times
         const testFlag = 'performance_test_flag';
         // First access - populate any internal structures
-        client.getBoolean(testFlag, false);
+        client.getValue<bool>(testFlag, false);
         // Measure first batch of accesses
         stopwatch.start();
         for (int i = 0; i < 1000; i++) {
-          client.getBoolean(testFlag, false);
+          client.getValue<bool>(testFlag, false);
         }
         stopwatch.stop();
         final firstBatchTime = stopwatch.elapsedMicroseconds;
@@ -76,7 +76,7 @@ void main() {
         stopwatch.reset();
         stopwatch.start();
         for (int i = 0; i < 1000; i++) {
-          client.getBoolean(testFlag, false);
+          client.getValue<bool>(testFlag, false);
         }
         stopwatch.stop();
         final secondBatchTime = stopwatch.elapsedMicroseconds;
@@ -95,30 +95,30 @@ void main() {
       });
       test('should invalidate cache on configuration update', () async {
         // Get initial value
-        client.getBoolean('update_test_flag', false);
+        client.getValue<bool>('update_test_flag', false);
         // Simulate configuration update
         // Refresh not needed - config is loaded on init
         // Value might change after refresh
-        final updatedValue = client.getBoolean('update_test_flag', false);
+        final updatedValue = client.getValue<bool>('update_test_flag', false);
         // Test focuses on the mechanism working, not the value changing
         expect(() => updatedValue, returnsNormally);
       });
       test('should handle partial cache invalidation', () {
         // Cache multiple flags
-        final flag1 = client.getBoolean('flag_1', false);
-        final flag2 = client.getString('flag_2', 'default');
-        final flag3 = client.getNumber('flag_3', 0);
+        final flag1 = client.getValue<bool>('flag_1', false);
+        final flag2 = client.getValue<String>('flag_2', 'default');
+        final flag3 = client.getValue<double>('flag_3', 0);
         // After partial invalidation, some flags remain cached
-        expect(client.getBoolean('flag_1', false), equals(flag1));
-        expect(client.getString('flag_2', 'default'), equals(flag2));
-        expect(client.getNumber('flag_3', 0), equals(flag3));
+        expect(client.getValue<bool>('flag_1', false), equals(flag1));
+        expect(client.getValue<String>('flag_2', 'default'), equals(flag2));
+        expect(client.getValue<double>('flag_3', 0), equals(flag3));
       });
       test('should handle concurrent cache access during updates', () async {
         final futures = <Future>[];
         // Simulate concurrent access during potential updates
         for (int i = 0; i < 50; i++) {
           futures
-              .add(Future(() => client.getBoolean('concurrent_flag', false)));
+              .add(Future(() => client.getValue<bool>('concurrent_flag', false)));
           if (i % 10 == 0) {
             futures.add(Future.value()); // Config refresh happens automatically
           }
@@ -144,18 +144,18 @@ void main() {
       });
       test('should respect cache TTL settings', () async {
         // Get initial value
-        client.getBoolean('ttl_test_flag', false);
+        client.getValue<bool>('ttl_test_flag', false);
         // Wait for TTL to expire
         await Future.delayed(const Duration(seconds: 2));
         // Value should be re-evaluated after TTL
-        final afterTTL = client.getBoolean('ttl_test_flag', false);
+        final afterTTL = client.getValue<bool>('ttl_test_flag', false);
         expect(() => afterTTL, returnsNormally);
       });
       test('should handle stale cache gracefully', () {
         // Access flag to cache it
-        client.getBoolean('stale_test_flag', false);
+        client.getValue<bool>('stale_test_flag', false);
         // Even with stale cache, should return value
-        final staleValue = client.getBoolean('stale_test_flag', true);
+        final staleValue = client.getValue<bool>('stale_test_flag', true);
         expect(staleValue, isNotNull);
       });
     });
@@ -170,20 +170,20 @@ void main() {
       test('should implement LRU eviction policy', () {
         // Access flags in order
         for (int i = 0; i < 100; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         // Access early flags again (making them recently used)
         for (int i = 0; i < 10; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         // Add more flags to trigger eviction
         for (int i = 100; i < 200; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         // Early accessed flags should still be cached
         final stopwatch = Stopwatch()..start();
         for (int i = 0; i < 10; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         stopwatch.stop();
         // Should be fast (cached)
@@ -194,11 +194,11 @@ void main() {
         final largeJson = Map.fromEntries(
             List.generate(1000, (i) => MapEntry('key_$i', 'value_$i')));
         for (int i = 0; i < 100; i++) {
-          client.getJson('large_json_$i', largeJson);
+          client.getValue<Map<String, dynamic>>('large_json_$i', largeJson);
         }
         // Should still perform well
         final stopwatch = Stopwatch()..start();
-        client.getJson('large_json_50', {});
+        client.getValue<Map<String, dynamic>>('large_json_50', {});
         stopwatch.stop();
         expect(stopwatch.elapsedMilliseconds, lessThan(5));
       });
@@ -217,7 +217,7 @@ void main() {
         final futures = <Future<bool>>[];
         // Concurrent reads of the same flag
         for (int i = 0; i < 100; i++) {
-          futures.add(Future(() => client.getBoolean(flagKey, false)));
+          futures.add(Future(() => client.getValue<bool>(flagKey, false)));
         }
         final results = await Future.wait(futures);
         // All reads should return the same value
@@ -228,7 +228,7 @@ void main() {
         final futures = <Future>[];
         // Mix of reads and cache invalidations
         for (int i = 0; i < 50; i++) {
-          futures.add(Future(() => client.getBoolean('race_flag', false)));
+          futures.add(Future(() => client.getValue<bool>('race_flag', false)));
           if (i % 10 == 0) {
             futures.add(Future.value()); // Config refresh happens automatically
           }
@@ -238,11 +238,11 @@ void main() {
       });
       test('should prevent cache poisoning', () {
         // Attempt to get flags with invalid data
-        expect(() => client.getBoolean('', false), returnsNormally);
+        expect(() => client.getValue<bool>('', false), returnsNormally);
         expect(
-            () => client.getString(r'$invalid$key$', 'safe'), returnsNormally);
+            () => client.getValue<String>(r'$invalid$key$', 'safe'), returnsNormally);
         // Valid flags should still work
-        expect(client.getBoolean('valid_flag', true), isA<bool>());
+        expect(client.getValue<bool>('valid_flag', true), isA<bool>());
       });
     });
     group('Offline Cache Behavior', () {
@@ -255,15 +255,15 @@ void main() {
       });
       test('should use cached values in offline mode', () {
         // In offline mode, should use cached/default values
-        expect(client.getBoolean('offline_flag', true), isA<bool>());
-        expect(client.getString('offline_string', 'default'), isA<String>());
-        expect(client.getNumber('offline_number', 42), isA<double>());
-        expect(client.getJson('offline_json', {'offline': true}), isA<Map>());
+        expect(client.getValue<bool>('offline_flag', true), isA<bool>());
+        expect(client.getValue<String>('offline_string', 'default'), isA<String>());
+        expect(client.getValue<double>('offline_number', 42), isA<double>());
+        expect(client.getValue<Map<String, dynamic>>('offline_json', {'offline': true}), isA<Map>());
       });
       test('should persist cache across sessions', () async {
         // Get values to populate cache
-        client.getBoolean('persist_bool', false);
-        client.getString('persist_string', 'default');
+        client.getValue<bool>('persist_bool', false);
+        client.getValue<String>('persist_string', 'default');
         // Simulate app restart
         await CFClient.shutdownSingleton();
         CFClient.clearInstance();
@@ -273,13 +273,13 @@ void main() {
             .withTestUser(TestUserType.defaultUser)
             .build();
         // Should potentially have persisted values (depends on implementation)
-        expect(newClient.getBoolean('persist_bool', false), isA<bool>());
-        expect(newClient.getString('persist_string', 'default'), isA<String>());
+        expect(newClient.getValue<bool>('persist_bool', false), isA<bool>());
+        expect(newClient.getValue<String>('persist_string', 'default'), isA<String>());
       });
       test('should handle cache corruption gracefully', () {
         // Even with corrupted cache, should fall back to defaults
-        expect(client.getBoolean('corrupted_flag', true), isA<bool>());
-        expect(client.getString('corrupted_string', 'safe'), equals('safe'));
+        expect(client.getValue<bool>('corrupted_flag', true), isA<bool>());
+        expect(client.getValue<String>('corrupted_string', 'safe'), equals('safe'));
       });
     });
     group('Cache Warming and Preloading', () {
@@ -301,14 +301,14 @@ void main() {
         ];
         // Pre-evaluate flags to warm cache
         for (final flag in frequentFlags) {
-          client.getBoolean(flag, false);
-          client.getString(flag, 'default');
+          client.getValue<bool>(flag, false);
+          client.getValue<String>(flag, 'default');
         }
         // Subsequent access should be fast
         final stopwatch = Stopwatch()..start();
         for (final flag in frequentFlags) {
-          client.getBoolean(flag, false);
-          client.getString(flag, 'default');
+          client.getValue<bool>(flag, false);
+          client.getValue<String>(flag, 'default');
         }
         stopwatch.stop();
         expect(stopwatch.elapsedMilliseconds, lessThan(5));
@@ -318,7 +318,7 @@ void main() {
         // After getting all flags, individual access should be cached
         final stopwatch = Stopwatch()..start();
         for (final flagKey in allFlags.keys.take(50)) {
-          client.getBoolean(flagKey, false);
+          client.getValue<bool>(flagKey, false);
         }
         stopwatch.stop();
         expect(stopwatch.elapsedMilliseconds, lessThan(10));

@@ -15,7 +15,7 @@ import '../../core/error/error_severity.dart';
 import '../../infrastructure/logging/logger.dart';
 import '../../core/model/cf_user.dart';
 import '../../config/core/cf_config.dart';
-import '../../infrastructure/utils/retry_util.dart';
+import '../../infrastructure/utils/exponential_backoff.dart';
 
 import 'cf_config_request_summary.dart';
 import '../../infrastructure/types.dart';
@@ -38,7 +38,6 @@ class SummaryManager {
 
   late final int _queueSize;
   late int _flushIntervalMs;
-  final int _flushTimeSeconds;
 
   final Queue<CFConfigRequestSummary> _queue =
       ListQueue<CFConfigRequestSummary>();
@@ -54,11 +53,10 @@ class SummaryManager {
     this._httpClient,
     this._user,
     this._config,
-  ) : _flushTimeSeconds = _config.summariesFlushTimeSeconds {
+  ) {
     _queueSize = _config.summariesQueueSize;
     _flushIntervalMs = _config.summariesFlushIntervalMs;
-    Logger.i(
-        '📊 SUMMARY: SummaryManager initialized with queueSize=$_queueSize, flushIntervalMs=$_flushIntervalMs, flushTimeSeconds=$_flushTimeSeconds');
+    Logger.d('SummaryManager initialized (queueSize=$_queueSize)');
     _startPeriodicFlush();
   }
 
@@ -68,8 +66,7 @@ class SummaryManager {
       if (intervalMs <= 0) throw ArgumentError('Interval must be > 0');
       _flushIntervalMs = intervalMs;
       _restartPeriodicFlush();
-      Logger.i(
-          '📊 SUMMARY: Updated summaries flush interval to $intervalMs ms');
+      Logger.d('Summary flush interval updated: ${intervalMs}ms');
     } catch (e) {
       ErrorHandler.handleException(
         e,
@@ -89,19 +86,15 @@ class SummaryManager {
   void clearSummaries() {
     _queue.clear();
     _trackMap.clear();
-    Logger.d('📊 SUMMARY: Cleared all summaries and tracking map');
+    Logger.d('Summaries cleared');
   }
 
   /// Pushes a config summary into the queue
   Future<CFResult<bool>> pushSummary(Map<String, dynamic> config) async {
-    // Log the config being processed
-    Logger.i(
-        '📊 SUMMARY: Processing summary for config: ${config["key"] ?? "unknown"}');
-
     // Validate map keys
     if (config.keys.any((k) => k.runtimeType != String)) {
       const msg = 'Config map has non-string keys';
-      Logger.w('📊 SUMMARY: $msg');
+      Logger.w(msg);
       ErrorHandler.handleError(
         msg,
         source: _source,
@@ -120,7 +113,7 @@ class SummaryManager {
     if (!experienceIdResult.isSuccess) {
       final msg =
           'Missing mandatory experience_id in config: ${experienceIdResult.getErrorMessage()}';
-      Logger.w('📊 SUMMARY: $msg, summary not tracked');
+      Logger.w(msg);
       ErrorHandler.handleError(
         msg,
         source: _source,
@@ -156,7 +149,7 @@ class SummaryManager {
     if (missingFields.isNotEmpty) {
       final msg =
           'Missing mandatory fields for summary: ${missingFields.join(', ')}';
-      Logger.w('📊 SUMMARY: $msg, summary not tracked');
+      Logger.w(msg);
       ErrorHandler.handleError(
         msg,
         source: _source,
@@ -181,8 +174,6 @@ class SummaryManager {
 
     // Prevent duplicate processing with proper async handling
     if (_trackMap.containsKey(compositeKey)) {
-      Logger.d(
-          '📊 SUMMARY: Experience-Behaviour combination already processed: $compositeKey');
       return CFResult.success(true);
     }
 
@@ -207,11 +198,8 @@ class SummaryManager {
       ruleId: ruleId,
     );
 
-    Logger.i(
-        '📊 SUMMARY: Created summary for experience: $experienceId, config: $configId');
-
     if (_queue.length >= _queueSize) {
-      Logger.w('📊 SUMMARY: Queue full, forcing flush for new entry');
+      Logger.d('Summary queue full, flushing');
       ErrorHandler.handleError(
         'Summary queue full, forcing flush for new entry',
         source: _source,
@@ -222,7 +210,7 @@ class SummaryManager {
       await flushSummaries();
 
       if (_queue.length >= _queueSize) {
-        Logger.e('📊 SUMMARY: Failed to queue summary after flush');
+        Logger.e('Failed to queue summary after flush');
         ErrorHandler.handleError(
           'Failed to queue summary after flush',
           source: _source,
@@ -237,13 +225,9 @@ class SummaryManager {
     }
 
     _queue.addLast(summary);
-    Logger.i(
-        '📊 SUMMARY: Added to queue: experience=$experienceId, queue size=${_queue.length}');
 
     // Check if queue size threshold is reached
     if (_queue.length >= _queueSize) {
-      Logger.i(
-          '📊 SUMMARY: Queue size threshold reached (${_queue.length}/$_queueSize), triggering flush');
       await flushSummaries();
     }
 
@@ -262,12 +246,8 @@ class SummaryManager {
   /// Performs the actual summary flush operation (extracted for deduplication)
   Future<CFResult<int>> _performSummaryFlush() async {
     if (_queue.isEmpty) {
-      // Silent return when queue is empty - no logging needed
       return CFResult.success(0);
     }
-
-    Logger.i(
-        '📊 SUMMARY: flushSummaries() called, queue size: ${_queue.length}');
 
     final batch = <CFConfigRequestSummary>[];
     while (_queue.isNotEmpty) {
@@ -275,29 +255,24 @@ class SummaryManager {
     }
 
     if (batch.isEmpty) {
-      Logger.d('📊 SUMMARY: No summaries to flush after drain');
       return CFResult.success(0);
     }
 
-    Logger.i('📊 SUMMARY: Flushing ${batch.length} summaries to server');
+    Logger.d('Flushing ${batch.length} summaries');
 
     try {
       final result = await _sendSummariesToServer(batch);
       if (result.isSuccess) {
-        Logger.i(
-            '📊 SUMMARY: Successfully flushed ${batch.length} summaries to server');
         return CFResult.success(batch.length);
       } else {
-        Logger.w(
-            '📊 SUMMARY: Failed to flush summaries: ${result.getErrorMessage()}');
+        Logger.w('Summary flush failed: ${result.getErrorMessage()}');
         return CFResult.error(
           'Failed to flush summaries: ${result.getErrorMessage()}',
           category: ErrorCategory.network,
         );
       }
     } catch (e) {
-      Logger.e(
-          '📊 SUMMARY: Unexpected error during summary flush: ${e.toString()}');
+      Logger.e('Summary flush error: $e');
       ErrorHandler.handleException(
         e,
         'Unexpected error during summary flush',
@@ -314,8 +289,6 @@ class SummaryManager {
 
   Future<CFResult<bool>> _sendSummariesToServer(
       List<CFConfigRequestSummary> summaries) async {
-    Logger.i('📊 SUMMARY: Sending ${summaries.length} summaries to server');
-
     // Create strongly typed request
     final request = SummaryRequest(
       user: _user,
@@ -324,10 +297,6 @@ class SummaryManager {
     );
 
     final payload = request.toJsonString();
-
-    // Log summary payload info (reduced verbosity)
-    Logger.d(
-        '📊 SUMMARY: Sending ${summaries.length} summaries, payload size: ${payload.length} bytes');
 
     // SECURITY FIX: Move API key to headers instead of URL parameter
     final url = '${CFConstants.api.baseApiUrl}${CFConstants.api.summariesPath}';
@@ -340,14 +309,15 @@ class SummaryManager {
     };
 
     try {
-      var success = false;
-      await RetryUtil.withRetryResult<dynamic>(
-        maxAttempts: 3,
-        initialDelayMs: 1000,
-        maxDelayMs: 5000,
-        backoffMultiplier: 2.0,
-        block: () async {
-          Logger.d('📊 SUMMARY: Attempting to send summaries');
+      final result = await ExponentialBackoff.retry<bool>(
+        operationName: 'SummaryManager.sendSummaries',
+        config: RetryConfig(
+          maxAttempts: 3,
+          initialDelay: const Duration(milliseconds: 1000),
+          maxDelay: const Duration(milliseconds: 5000),
+          backoffMultiplier: 2.0,
+        ),
+        operation: () async {
           final res = await _httpClient.post(
             url,
             data: payload,
@@ -355,23 +325,20 @@ class SummaryManager {
           );
 
           if (!res.isSuccess) {
-            Logger.w('📊 SUMMARY: Server returned error, retrying...');
-            throw Exception('Failed to send summaries - server returned error');
+            return CFResult.error(
+              'Failed to send summaries - server returned error',
+              category: ErrorCategory.network,
+            );
           }
 
-          Logger.i('📊 SUMMARY: Server accepted summaries');
-          success = true;
-          return res;
+          return CFResult.success(true);
         },
       );
 
-      if (success) {
-        Logger.i(
-            '📊 SUMMARY: Successfully sent ${summaries.length} summaries to server');
+      if (result.isSuccess) {
         return CFResult.success(true);
       } else {
-        Logger.w(
-            '📊 SUMMARY: Failed to send summaries after ${_config.maxRetryAttempts} attempts');
+        Logger.w('Failed to send summaries after retries');
         await _handleSendFailure(summaries);
         return CFResult.error(
           'Failed to send summaries after ${_config.maxRetryAttempts} attempts',
@@ -379,8 +346,7 @@ class SummaryManager {
         );
       }
     } catch (e) {
-      Logger.e(
-          '📊 SUMMARY: Error sending summaries to server: ${e.toString()}');
+      Logger.e('Error sending summaries: $e');
       ErrorHandler.handleException(
         e,
         'Error sending summaries to server',
@@ -399,8 +365,6 @@ class SummaryManager {
   /// Helper method to handle send failures by re-queueing summaries
   Future<void> _handleSendFailure(
       List<CFConfigRequestSummary> summaries) async {
-    Logger.w(
-        '📊 SUMMARY: Failed to send ${summaries.length} summaries after retries, re-queuing');
     var requeueFailCount = 0;
 
     for (final summary in summaries) {
@@ -412,8 +376,7 @@ class SummaryManager {
     }
 
     if (requeueFailCount > 0) {
-      Logger.e(
-          '📊 SUMMARY: Failed to re-queue $requeueFailCount summaries after send failure');
+      Logger.e('Failed to re-queue $requeueFailCount summaries');
       ErrorHandler.handleError(
         'Failed to re-queue $requeueFailCount summaries after send failure',
         source: _source,
@@ -424,24 +387,16 @@ class SummaryManager {
   }
 
   void _startPeriodicFlush() {
-    // Cancel existing timer
     _timer?.cancel();
     _timer = null;
 
-    // Create new timer
     _timer = Timer.periodic(
       Duration(milliseconds: _flushIntervalMs),
       (_) async {
         try {
-          // Only log if there are summaries to flush
-          if (_queue.isNotEmpty) {
-            Logger.i(
-                '📊 SUMMARY: Periodic flush triggered, queue size: ${_queue.length}');
-          }
           await flushSummaries();
         } catch (e) {
-          Logger.e(
-              '📊 SUMMARY: Error during periodic summary flush: ${e.toString()}');
+          Logger.e('Periodic summary flush error: $e');
           ErrorHandler.handleException(
             e,
             'Error during periodic summary flush',
@@ -451,30 +406,19 @@ class SummaryManager {
         }
       },
     );
-
-    Logger.i(
-        '📊 SUMMARY: Started periodic summary flush with interval $_flushIntervalMs ms');
   }
 
   Future<void> _restartPeriodicFlush() async {
-    // Cancel existing timer
     _timer?.cancel();
     _timer = null;
 
-    // Create new timer with updated interval
     _timer = Timer.periodic(
       Duration(milliseconds: _flushIntervalMs),
       (_) async {
         try {
-          // Only log if there are summaries to flush
-          if (_queue.isNotEmpty) {
-            Logger.d(
-                '📊 SUMMARY: Periodic flush triggered, queue size: ${_queue.length}');
-          }
           await flushSummaries();
         } catch (e) {
-          Logger.e(
-              '📊 SUMMARY: Error during periodic summary flush: ${e.toString()}');
+          Logger.e('Periodic summary flush error: $e');
           ErrorHandler.handleException(
             e,
             'Error during periodic summary flush',
@@ -484,9 +428,6 @@ class SummaryManager {
         }
       },
     );
-
-    Logger.d(
-        '📊 SUMMARY: Restarted periodic flush with interval $_flushIntervalMs ms');
   }
 
   /// Returns all tracked summaries
@@ -499,10 +440,7 @@ class SummaryManager {
   void shutdown() {
     _timer?.cancel();
     _timer = null;
-
-    // Cancel any in-flight requests
     _requestDeduplicator.cancelAll();
-
-    Logger.i('📊 SUMMARY: Summary manager shutdown');
+    Logger.d('SummaryManager shutdown');
   }
 }

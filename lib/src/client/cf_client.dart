@@ -29,7 +29,6 @@ import '../infrastructure/logging/log_level_updater.dart';
 import '../infrastructure/logging/logger.dart';
 import '../core/model/cf_user.dart';
 import '../core/model/evaluation_context.dart';
-import '../core/model/context_type.dart';
 import '../infrastructure/storage/internal/singleton_registry.dart';
 import '../infrastructure/storage/internal/preferences_service.dart'
     as prefs_impl;
@@ -49,6 +48,7 @@ import '../config/validation/cf_config_validator.dart';
 import '../features/feature_flags.dart';
 import '../features/cf_flag_provider.dart';
 import '../infrastructure/utils/synchronization.dart';
+import '../infrastructure/utils/exponential_backoff.dart';
 import '../core/resource_registry.dart';
 
 import 'initialization_state.dart';
@@ -121,6 +121,18 @@ class CFClient {
 
   /// Access to type-safe feature flags
   FeatureFlags get typed => _typedFlags;
+
+  /// Access to user management functionality (advanced API)
+  /// Use `client.user.addStringProperty(...)` pattern
+  CFClientUserManagement get user => _userManagementComponent;
+
+  /// Access to session management functionality (advanced API)
+  /// Use `client.session.getCurrentId()` pattern
+  CFClientSessionManagement get session => _sessionManagementComponent;
+
+  /// Access to recovery functionality (advanced API)
+  /// Use `client.recovery.performHealthCheck()` pattern
+  CFClientRecovery get recovery => _recoveryComponent;
 
   /// CFResult compatibility methods for tests
   bool get isSuccess => true;
@@ -218,15 +230,13 @@ class CFClient {
     return await synchronizedAsync(_initializationLock, () async {
       // Double-check pattern inside the lock
       if (_instance != null) {
-        Logger.i(
-            'CFClient singleton already exists, returning existing instance');
+        Logger.d('CFClient already initialized');
         return _instance!;
       }
 
       // If currently initializing, wait for existing initialization
       if (_isInitializing && _initializationCompleter != null) {
-        Logger.i(
-            'CFClient initialization in progress, waiting for completion...');
+        Logger.d('Waiting for CFClient initialization...');
         try {
           final client = await _initializationCompleter!.future;
           return client;
@@ -236,7 +246,7 @@ class CFClient {
       }
 
       // Start new initialization
-      Logger.i('Starting CFClient singleton initialization...');
+      Logger.i('CFClient initializing...');
       _isInitializing = true;
       _initializationCompleter = Completer<CFClient>();
 
@@ -369,7 +379,7 @@ class CFClient {
         _isInitializing = false;
         _initializationCompleter!.complete(newInstance);
 
-        Logger.i('CFClient initialization completed successfully');
+        Logger.i('CFClient ready');
         SingletonRegistry.instance.register<CFClient>(
           'CFClient',
           newInstance,
@@ -407,8 +417,7 @@ class CFClient {
         );
 
         // Log recovery attempt but don't actually retry in this context
-        Logger.i(
-            'Initialization failed, recovery may be possible in future attempts');
+        Logger.w('Initialization failed, recovery may be possible');
 
         throw initException;
       }
@@ -494,6 +503,7 @@ class CFClient {
   ///   print('SDK initialization failed after all retries: $e');
   /// }
   /// ```
+  /// Initialize with automatic retry on failure using ExponentialBackoff
   static Future<CFClient> initializeWithRetry(
     CFConfig config,
     CFUser user, {
@@ -501,79 +511,62 @@ class CFClient {
     int initialDelayMs = 1000,
     DependencyFactory? dependencyFactory,
   }) async {
-    int attempt = 0;
-    int delayMs = initialDelayMs;
+    final result = await ExponentialBackoff.retry<CFClient>(
+      operationName: 'CFClient.initialize',
+      config: RetryConfig(
+        maxAttempts: maxRetries,
+        initialDelay: Duration(milliseconds: initialDelayMs),
+        maxDelay: const Duration(seconds: 30),
+        backoffMultiplier: 1.5,
+      ),
+      operation: () async {
+        try {
+          // Ensure clean state before each attempt
+          if (_instance != null) {
+            await shutdownSingleton();
+          }
+          final client = await initialize(config, user,
+              dependencyFactory: dependencyFactory);
+          return CFResult.success(client);
+        } catch (e) {
+          // Check if error is retryable (network errors)
+          final errorString = e.toString().toLowerCase();
+          final isNetworkError = e is SocketException ||
+              e is TimeoutException ||
+              errorString.contains('network') ||
+              errorString.contains('timeout') ||
+              errorString.contains('connection');
 
-    while (attempt <= maxRetries) {
-      try {
-        Logger.i(
-            'Attempting SDK initialization (attempt ${attempt + 1}/${maxRetries + 1})');
-        return await initialize(config, user,
-            dependencyFactory: dependencyFactory);
-      } catch (e) {
-        attempt++;
+          if (!isNetworkError) {
+            // Non-retryable error - return error to stop retrying
+            return CFResult.error(
+              'Non-retryable initialization error: $e',
+              exception: e is Exception ? e : Exception(e.toString()),
+              errorCode: CFErrorCode.configInvalidApiKey,
+            );
+          }
 
-        if (attempt > maxRetries) {
-          Logger.e('SDK initialization failed after $maxRetries retries: $e');
-          rethrow;
+          // Retryable error
+          return CFResult.error(
+            'Initialization failed: $e',
+            exception: e is Exception ? e : Exception(e.toString()),
+            errorCode: CFErrorCode.networkTimeout,
+          );
         }
+      },
+    );
 
-        // Check if the error is retryable
-        final isRetryable = _isRetryableInitializationError(e);
-        if (!isRetryable) {
-          Logger.e('Non-retryable initialization error: $e');
-          rethrow;
-        }
-
-        Logger.w(
-            'Initialization attempt $attempt failed, retrying in ${delayMs}ms: $e');
-
-        // Wait before retry with exponential backoff
-        await Future.delayed(Duration(milliseconds: delayMs));
-        delayMs = (delayMs * 1.5)
-            .round()
-            .clamp(initialDelayMs, 30000); // Max 30 seconds
-
-        // Ensure clean state before retry
-        await shutdownSingleton();
-      }
+    if (result.isSuccess) {
+      return result.getOrThrow();
     }
 
-    throw StateError('This should never be reached');
-  }
-
-  /// Check if an initialization error is retryable
-  static bool _isRetryableInitializationError(dynamic error) {
-    if (error is SDKInitializationException) {
-      // Check the original error to determine if it's retryable
-      final originalError = error.originalError;
-
-      // Network-related errors are usually retryable
-      if (originalError is SocketException ||
-          originalError is TimeoutException ||
-          originalError.toString().contains('network') ||
-          originalError.toString().contains('timeout') ||
-          originalError.toString().contains('connection')) {
-        return true;
-      }
-
-      // Configuration errors are usually not retryable
-      if (originalError.toString().contains('configuration') ||
-          originalError.toString().contains('invalid') ||
-          originalError.toString().contains('missing')) {
-        return false;
-      }
-
-      // Default to retryable for unknown errors
-      return true;
-    }
-
-    // For non-SDK exceptions, check common retryable patterns
-    final errorString = error.toString().toLowerCase();
-    return errorString.contains('network') ||
-        errorString.contains('timeout') ||
-        errorString.contains('connection') ||
-        errorString.contains('unavailable');
+    throw SDKInitializationException(
+      message: result.getErrorMessage() ?? 'SDK initialization failed after retries',
+      originalError: result.error?.exception,
+      failedAtState: InitializationState.initializing,
+      completedSteps: _initTracker.completedSteps,
+      failedStep: 'initialization_with_retry',
+    );
   }
 
   // REMOVED: Deprecated init() method - use initialize() instead
@@ -660,6 +653,9 @@ class CFClient {
   /// SDK settings manager
   late final CFClientSdkSettings _sdkSettings;
 
+  /// Timer for debouncing user property change auto-refresh
+  Timer? _userChangeRefreshTimer;
+
   CFClient._(
     CFConfig config,
     CFUser user,
@@ -698,6 +694,9 @@ class CFClient {
       sessionId: _sessionId,
     );
 
+    // Wire up ConfigManager to EventTracker for auto-refresh on event flush
+    eventTracker.setConfigManager(configManager);
+
     // Initialize facade components
     _featureFlagsComponent = _featureFlags;
     _eventsComponent = _events;
@@ -711,12 +710,13 @@ class CFClient {
       getSessionManager: () => _sessionManager,
       getEventTracker: () => eventTracker,
       getConfigManager: () => configManager,
-      getCurrentSessionId: () => getCurrentSessionId(),
+      getCurrentSessionId: () => _sessionManagementComponent.getCurrentSessionId(),
     );
 
     // Initialize new facade components
     _userManagementComponent = CFClientUserManagement(
       userManager: userManager,
+      onPropertyChange: _scheduleUserPropertyChangeRefresh,
     );
 
     _sessionManagementComponent = CFClientSessionManagement(
@@ -793,6 +793,9 @@ class CFClient {
       sessionId: _sessionId,
     );
 
+    // Wire up ConfigManager to EventTracker for auto-refresh on event flush
+    eventTracker.setConfigManager(configManager);
+
     // Initialize facade components
     _featureFlagsComponent = _featureFlags;
     _eventsComponent = _events;
@@ -806,12 +809,13 @@ class CFClient {
       getSessionManager: () => _sessionManager,
       getEventTracker: () => eventTracker,
       getConfigManager: () => configManager,
-      getCurrentSessionId: () => getCurrentSessionId(),
+      getCurrentSessionId: () => _sessionManagementComponent.getCurrentSessionId(),
     );
 
     // Initialize new facade components
     _userManagementComponent = CFClientUserManagement(
       userManager: userManager,
+      onPropertyChange: _scheduleUserPropertyChangeRefresh,
     );
 
     _sessionManagementComponent = CFClientSessionManagement(
@@ -977,7 +981,7 @@ class CFClient {
   Future<CFResult<void>> _initializeSessionManager() async {
     // Skip session manager initialization in offline mode to prevent issues
     if (_mutableConfig.config.offlineMode) {
-      Logger.i('🔄 SKIPPING SessionManager initialization in offline mode');
+      Logger.d('SessionManager skipped (offline mode)');
       return CFResult.success(null);
     }
 
@@ -1039,7 +1043,7 @@ class CFClient {
             sessionManager: _sessionManager,
           );
 
-          Logger.i('🔄 SessionManager initialized with session: $_sessionId');
+          Logger.d('SessionManager ready (session: $_sessionId)');
 
           // Complete the initialization successfully
           _sessionInitCompleter!.complete();
@@ -1122,6 +1126,12 @@ class CFClient {
   void clearConfigListeners(String key) =>
       configManager.clearConfigListeners(key);
 
+  /// Clear all config listeners across all keys
+  ///
+  /// This is useful for cleanup during dispose to avoid manual removal
+  /// of each individual listener.
+  void clearAllConfigListeners() => configManager.clearAllConfigListeners();
+
   /// Add feature flag listener
   void addFeatureFlagListener(
           String flagKey, void Function(String, dynamic, dynamic) listener) =>
@@ -1147,53 +1157,27 @@ class CFClient {
           .unregisterAllFlagsListener(AllFlagsListenerWrapper(listener));
 
   /// Get a feature flag value with generic type support
-  T getFeatureFlag<T>(String key, T defaultValue) {
+  ///
+  /// This is the **recommended unified method** for retrieving feature flag values.
+  /// It supports all standard types: bool, String, double, num, int, and `Map<String, dynamic>`.
+  ///
+  /// Returns the flag value if found and valid, otherwise returns [defaultValue].
+  /// Automatically tracks summary for flag evaluation and includes graceful degradation.
+  ///
+  /// Example:
+  /// ```dart
+  /// final isEnabled = client.getValue<bool>('new_feature', false);
+  /// final theme = client.getValue<String>('app_theme', 'light');
+  /// final maxRetries = client.getValue<double>('max_retries', 3.0);
+  /// final config = client.getValue<Map<String, dynamic>>('feature_config', {});
+  /// ```
+  T getValue<T>(String key, T defaultValue) {
     if (key.trim().isEmpty) {
       Logger.w('CFClient: Feature flag key is empty');
       return defaultValue;
     }
 
-    return configManager.getConfigValue<T>(key, defaultValue);
-  }
-
-  /// Get a string feature flag value
-  String getString(String key, String defaultValue) {
-    if (key.trim().isEmpty) {
-      Logger.w('CFClient: String flag key is empty');
-      return defaultValue;
-    }
-
-    return _featureFlagsComponent.getString(key, defaultValue);
-  }
-
-  /// Get a boolean feature flag value
-  bool getBoolean(String key, bool defaultValue) {
-    if (key.trim().isEmpty) {
-      Logger.w('CFClient: Boolean flag key is empty');
-      return defaultValue;
-    }
-
-    return _featureFlagsComponent.getBoolean(key, defaultValue);
-  }
-
-  /// Get a number feature flag value
-  double getNumber(String key, double defaultValue) {
-    if (key.trim().isEmpty) {
-      Logger.w('CFClient: Number flag key is empty');
-      return defaultValue;
-    }
-
-    return _featureFlagsComponent.getNumber(key, defaultValue);
-  }
-
-  /// Get a JSON feature flag value
-  Map<String, dynamic> getJson(String key, Map<String, dynamic> defaultValue) {
-    if (key.trim().isEmpty) {
-      Logger.w('CFClient: JSON flag key is empty');
-      return defaultValue;
-    }
-
-    return _featureFlagsComponent.getJson(key, defaultValue);
+    return _featureFlagsComponent.getValue<T>(key, defaultValue);
   }
 
   /// Get all available feature flags
@@ -1247,6 +1231,10 @@ class CFClient {
   /// Shutdown the client
   Future<void> shutdown() async {
     Logger.i('Shutting down CF client');
+
+    // Cancel user property change refresh timer
+    _userChangeRefreshTimer?.cancel();
+    _userChangeRefreshTimer = null;
 
     // 1. First stop all active operations
     _sdkSettings.shutdown();
@@ -1423,279 +1411,24 @@ class CFClient {
     }
   }
 
-  // MARK: - Session Management
+  // MARK: - Auto-Refresh Helpers
 
-  /// Get the current session ID
-  String getCurrentSessionId() =>
-      _sessionManagementComponent.getCurrentSessionId();
+  /// Schedule config refresh after user property change with debouncing
+  void _scheduleUserPropertyChangeRefresh() {
+    final config = _mutableConfig.config;
+    if (!config.autoRefreshOnUserChange) {
+      return;
+    }
 
-  /// Get current session data with metadata
-  SessionData? getCurrentSessionData() =>
-      _sessionManagementComponent.getCurrentSessionData();
-
-  /// Force session rotation with a manual trigger
-  Future<String?> forceSessionRotation() async =>
-      await _sessionManagementComponent.forceSessionRotation();
-
-  /// Update session activity
-  Future<void> updateSessionActivity() async =>
-      await _sessionManagementComponent.updateSessionActivity();
-
-  /// Handle user authentication changes
-  Future<void> onUserAuthenticationChange(String? userId) async {
-    _sessionManagementComponent.onUserAuthenticationChange(userId);
+    _userChangeRefreshTimer?.cancel();
+    _userChangeRefreshTimer = Timer(
+      Duration(milliseconds: config.userChangeRefreshDebounceMs),
+      () {
+        Logger.d('Auto-refreshing configs after user property change');
+        configManager.refreshConfigs();
+      },
+    );
   }
-
-  /// Get session statistics
-  Map<String, dynamic> getSessionStatistics() =>
-      _sessionManagementComponent.getSessionStatistics();
-
-  /// Add a session rotation listener
-  void addSessionRotationListener(SessionRotationListener listener) =>
-      _sessionManagementComponent.addSessionRotationListener(listener);
-
-  /// Remove a session rotation listener
-  void removeSessionRotationListener(SessionRotationListener listener) =>
-      _sessionManagementComponent.removeSessionRotationListener(listener);
-
-  // MARK: - User Management
-
-  /// Set the current user
-  Future<CFResult<void>> setUser(CFUser user) async =>
-      await _userManagementComponent.setUser(user);
-
-  /// Get the current user
-  CFUser getUser() => _userManagementComponent.getUser();
-
-  /// Clear the current user by setting an anonymous user
-  Future<CFResult<void>> clearUser() async =>
-      await _userManagementComponent.clearUser();
-
-  /// Add a property to the user
-  CFResult<void> addUserProperty(String key, dynamic value) =>
-      _userManagementComponent.addUserProperty(key, value);
-
-  /// Add a string property to the user
-  CFResult<void> addStringProperty(String key, String value) =>
-      _userManagementComponent.addStringProperty(key, value);
-
-  /// Add a number property to the user
-  CFResult<void> addNumberProperty(String key, num value) =>
-      _userManagementComponent.addNumberProperty(key, value);
-
-  /// Add a boolean property to the user
-  CFResult<void> addBooleanProperty(String key, bool value) =>
-      _userManagementComponent.addBooleanProperty(key, value);
-
-  /// Add a JSON property to the user
-  CFResult<void> addJsonProperty(String key, Map<String, dynamic> value) =>
-      _userManagementComponent.addJsonProperty(key, value);
-
-  /// Add a map property to the user
-  CFResult<void> addMapProperty(String key, Map<String, dynamic> value) =>
-      _userManagementComponent.addMapProperty(key, value);
-
-  /// Add multiple properties to the user
-  CFResult<void> addUserProperties(Map<String, dynamic> properties) =>
-      _userManagementComponent.addUserProperties(properties);
-
-  /// Get all user properties
-  Map<String, dynamic> getUserProperties() =>
-      _userManagementComponent.getUserProperties();
-
-  /// Remove a property from the user
-  CFResult<void> removeProperty(String key) =>
-      _userManagementComponent.removeProperty(key);
-
-  /// Remove multiple properties from the user
-  CFResult<void> removeProperties(List<String> keys) =>
-      _userManagementComponent.removeProperties(keys);
-
-  // MARK: - Private Property Methods
-
-  /// Add a private string property to the user
-  CFResult<void> addPrivateStringProperty(String key, String value) =>
-      _userManagementComponent.addPrivateStringProperty(key, value);
-
-  /// Add a private number property to the user
-  CFResult<void> addPrivateNumberProperty(String key, num value) =>
-      _userManagementComponent.addPrivateNumberProperty(key, value);
-
-  /// Add a private boolean property to the user
-  CFResult<void> addPrivateBooleanProperty(String key, bool value) =>
-      _userManagementComponent.addPrivateBooleanProperty(key, value);
-
-  /// Add a private map property to the user
-  CFResult<void> addPrivateMapProperty(
-          String key, Map<String, dynamic> value) =>
-      _userManagementComponent.addPrivateMapProperty(key, value);
-
-  /// Add a private JSON property to the user
-  CFResult<void> addPrivateJsonProperty(
-          String key, Map<String, dynamic> value) =>
-      _userManagementComponent.addPrivateJsonProperty(key, value);
-
-  /// Mark an existing property as private
-  CFResult<void> markPropertyAsPrivate(String key) =>
-      _userManagementComponent.markPropertyAsPrivate(key);
-
-  /// Mark multiple existing properties as private
-  CFResult<void> markPropertiesAsPrivate(List<String> keys) =>
-      _userManagementComponent.markPropertiesAsPrivate(keys);
-
-  // MARK: - Context Management
-
-  /// Add an evaluation context to the user
-  CFResult<void> addContext(EvaluationContext context) =>
-      _userManagementComponent.addContext(context);
-
-  /// Remove an evaluation context from the user
-  CFResult<void> removeContext(ContextType type, String key) =>
-      _userManagementComponent.removeContext(type, key);
-
-  /// Get all evaluation contexts for the user
-  List<EvaluationContext> getContexts() =>
-      _userManagementComponent.getContexts();
-
-  // MARK: - Recovery Methods
-
-  /// Perform comprehensive system health check and recovery
-  ///
-  /// Checks session health, configuration validity, event recovery status,
-  /// and performs automatic recovery where needed.
-  ///
-  /// Returns a [Future] with [CFResult<SystemHealthStatus>] indicating overall system health.
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// final healthResult = await client.performSystemHealthCheck();
-  /// if (healthResult.isSuccess) {
-  ///   final status = healthResult.getOrNull()!;
-  ///   print('System health: ${status.overallStatus}');
-  ///   print('Session: ${status.sessionHealth}');
-  ///   print('Config: ${status.configHealth}');
-  ///   print('Events: ${status.eventRecoveryStats}');
-  /// }
-  /// ```
-  Future<CFResult<SystemHealthStatus>> performSystemHealthCheck() =>
-      _recoveryComponent.performSystemHealthCheck();
-
-  /// Recover from session-related errors
-  ///
-  /// Handles session timeouts, invalidation, corruption, and authentication failures.
-  ///
-  /// ## Parameters
-  ///
-  /// - [reason]: Optional reason for session recovery
-  /// - [authTokenRefreshCallback]: Optional callback to refresh authentication tokens
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// final recoveryResult = await client.recoverSession(
-  ///   reason: 'session_timeout',
-  ///   authTokenRefreshCallback: () async => await getNewAuthToken(),
-  /// );
-  ///
-  /// if (recoveryResult.isSuccess) {
-  ///   print('Session recovered: ${recoveryResult.getOrNull()}');
-  /// }
-  /// ```
-  Future<CFResult<String>> recoverSession({
-    String? reason,
-    Future<String?> Function()? authTokenRefreshCallback,
-  }) =>
-      _recoveryComponent.recoverSession(
-          reason: reason, authTokenRefreshCallback: authTokenRefreshCallback);
-
-  /// Recover failed events and retry offline events
-  ///
-  /// Attempts to resend failed events and recovers events that were queued while offline.
-  ///
-  /// ## Parameters
-  ///
-  /// - [maxEventsToRetry]: Maximum number of failed events to retry in this operation
-  ///
-  /// ## Returns
-  ///
-  /// A [Future] with [CFResult<EventRecoveryResult>] containing recovery statistics.
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// final recoveryResult = await client.recoverEvents(maxEventsToRetry: 100);
-  /// if (recoveryResult.isSuccess) {
-  ///   final result = recoveryResult.getOrNull()!;
-  ///   print('Recovered ${result.offlineEventsRecovered} offline events');
-  ///   print('Retried ${result.failedEventsRetried} failed events');
-  /// }
-  /// ```
-  Future<CFResult<EventRecoveryResult>> recoverEvents({
-    int maxEventsToRetry = 50,
-  }) =>
-      _recoveryComponent.recoverEvents(maxEventsToRetry: maxEventsToRetry);
-
-  /// Perform safe configuration update with automatic rollback on failure
-  ///
-  /// Updates configuration with validation and automatic recovery mechanisms.
-  /// Backs up current configuration and rolls back if the update fails.
-  ///
-  /// ## Parameters
-  ///
-  /// - [newConfig]: The new configuration to apply
-  /// - [validationTimeout]: Maximum time to wait for validation
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// final newConfig = {'feature_enabled': true, 'max_retries': 5};
-  /// final updateResult = await client.safeConfigUpdate(newConfig);
-  ///
-  /// if (updateResult.isSuccess) {
-  ///   print('Configuration updated successfully');
-  /// } else {
-  ///   print('Update failed, rolled back: ${updateResult.getErrorMessage()}');
-  /// }
-  /// ```
-  Future<CFResult<bool>> safeConfigUpdate(
-    Map<String, dynamic> newConfig, {
-    Duration validationTimeout = const Duration(seconds: 30),
-  }) =>
-      _recoveryComponent.safeConfigUpdate(newConfig,
-          validationTimeout: validationTimeout);
-
-  /// Recover from configuration corruption or update failures
-  ///
-  /// Attempts to restore configuration from backup or last known good state.
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// final recoveryResult = await client.recoverConfiguration();
-  /// if (recoveryResult.isSuccess) {
-  ///   print('Configuration restored from backup');
-  /// }
-  /// ```
-  Future<CFResult<Map<String, dynamic>>> recoverConfiguration() =>
-      _recoveryComponent.recoverConfiguration();
-
-  /// Perform automatic recovery based on current system state
-  ///
-  /// Analyzes system health and performs appropriate recovery actions automatically.
-  /// This is a convenience method that combines health checking with targeted recovery.
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// final autoRecoveryResult = await client.performAutoRecovery();
-  /// if (autoRecoveryResult.isSuccess) {
-  ///   final actions = autoRecoveryResult.getOrNull()!;
-  ///   print('Auto recovery performed ${actions.length} actions');
-  /// }
-  /// ```
-  Future<CFResult<List<String>>> performAutoRecovery() =>
-      _recoveryComponent.performAutoRecovery();
 
   /// Get singleton registry statistics (for debugging)
   ///

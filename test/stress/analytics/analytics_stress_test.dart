@@ -195,15 +195,15 @@ void main() {
             futures.add(client.trackEvent('mixed_op_$i'));
             // Flag evaluations
             futures.add(
-              Future(() => client.getBoolean('stress_flag_$i', false)),
+              Future(() => client.getValue<bool>('stress_flag_$i', false)),
             );
             futures.add(
-              Future(() => client.getString('stress_string_$i', 'default')),
+              Future(() => client.getValue<String>('stress_string_$i', 'default')),
             );
             // User operations
             if (i % 10 == 0) {
               futures.add(
-                client.setUser(TestConfigs.getUser(TestUserType.defaultUser)),
+                client.user.setUser(TestConfigs.getUser(TestUserType.defaultUser)),
               );
             }
           }

@@ -25,28 +25,28 @@ void main() {
       test('should handle cache size limits under stress', () {
         // Fill cache with many entries
         for (int i = 0; i < 10000; i++) {
-          client.getBoolean('cache_limit_flag_$i', false);
+          client.getValue<bool>('cache_limit_flag_$i', false);
         }
         // Should still function normally
-        expect(client.getBoolean('test_after_limit', true), isA<bool>());
+        expect(client.getValue<bool>('test_after_limit', true), isA<bool>());
       });
       test('should implement LRU eviction policy under stress', () {
         // Access flags in order
         for (int i = 0; i < 100; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         // Access early flags again (making them recently used)
         for (int i = 0; i < 10; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         // Add more flags to trigger eviction
         for (int i = 100; i < 200; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         // Early accessed flags should still be cached
         final stopwatch = Stopwatch()..start();
         for (int i = 0; i < 10; i++) {
-          client.getBoolean('lru_flag_$i', false);
+          client.getValue<bool>('lru_flag_$i', false);
         }
         stopwatch.stop();
         // Should be fast (cached)
@@ -57,11 +57,11 @@ void main() {
         final largeJson = Map.fromEntries(
             List.generate(1000, (i) => MapEntry('key_$i', 'value_$i')));
         for (int i = 0; i < 100; i++) {
-          client.getJson('large_json_$i', largeJson);
+          client.getValue<Map<String, dynamic>>('large_json_$i', largeJson);
         }
         // Should still perform well
         final stopwatch = Stopwatch()..start();
-        client.getJson('large_json_50', {});
+        client.getValue<Map<String, dynamic>>('large_json_50', {});
         stopwatch.stop();
         expect(stopwatch.elapsedMilliseconds, lessThan(5));
       });
@@ -89,7 +89,7 @@ void main() {
         final startTime = DateTime.now();
         // Perform multiple cache operations
         for (int i = 0; i < 100; i++) {
-          client.getBoolean('perf_flag_$i', i % 2 == 0);
+          client.getValue<bool>('perf_flag_$i', i % 2 == 0);
         }
         final endTime = DateTime.now();
         final duration = endTime.difference(startTime);
@@ -112,7 +112,7 @@ void main() {
         final futures = <Future<bool>>[];
         // Concurrent reads of the same flag
         for (int i = 0; i < 100; i++) {
-          futures.add(Future(() => client.getBoolean(flagKey, false)));
+          futures.add(Future(() => client.getValue<bool>(flagKey, false)));
         }
         final results = await Future.wait(futures);
         // All reads should return the same value
@@ -125,7 +125,7 @@ void main() {
         final readFutures = List.generate(
             50,
             (i) => Future(
-                () => client.getBoolean('concurrent_read_$i', i % 2 == 0)));
+                () => client.getValue<bool>('concurrent_read_$i', i % 2 == 0)));
         // Concurrent write operations
         final writeFutures =
             List.generate(50, (i) => client.trackEvent('concurrent_write_$i'));

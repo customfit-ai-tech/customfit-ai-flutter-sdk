@@ -6,7 +6,6 @@
 export 'synchronization.dart';
 export 'circuit_breaker.dart';
 export 'exponential_backoff.dart';
-export 'retry_util.dart';
 export 'background_queue.dart';
 export 'json_parser.dart';
 export 'string_optimizer.dart';

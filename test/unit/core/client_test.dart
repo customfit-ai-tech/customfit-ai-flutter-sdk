@@ -147,65 +147,65 @@ void main() {
       });
       test('should evaluate boolean flags correctly', () {
         // Test with existing flags
-        expect(client.getBoolean('test_bool_flag', false), isA<bool>());
+        expect(client.getValue<bool>('test_bool_flag', false), isA<bool>());
         // Test with fallback values
-        expect(client.getBoolean('missing_bool_flag', false), isFalse);
-        expect(client.getBoolean('missing_bool_flag', true), isTrue);
+        expect(client.getValue<bool>('missing_bool_flag', false), isFalse);
+        expect(client.getValue<bool>('missing_bool_flag', true), isTrue);
         // Test same method with different call pattern
         expect(
-            client.getBoolean('test_bool_flag', false), isA<bool>());
+            client.getValue<bool>('test_bool_flag', false), isA<bool>());
       });
       test('should evaluate string flags correctly', () {
         // Test with existing flags
-        expect(client.getString('test_string_flag', 'default'), isA<String>());
+        expect(client.getValue<String>('test_string_flag', 'default'), isA<String>());
         // Test with fallback values
-        expect(client.getString('missing_string_flag', 'fallback'),
+        expect(client.getValue<String>('missing_string_flag', 'fallback'),
             equals('fallback'));
-        expect(client.getString('missing_string_flag', ''), equals(''));
+        expect(client.getValue<String>('missing_string_flag', ''), equals(''));
         // Test same method with different call pattern
-        expect(client.getString('test_string_flag', 'default'),
+        expect(client.getValue<String>('test_string_flag', 'default'),
             isA<String>());
       });
       test('should evaluate number flags correctly', () {
         // Test with existing flags
-        expect(client.getNumber('test_number_flag', 0), isA<num>());
+        expect(client.getValue<double>('test_number_flag', 0), isA<num>());
         // Test with fallback values
-        expect(client.getNumber('missing_number_flag', 0), equals(0));
-        expect(client.getNumber('missing_number_flag', 99.9), equals(99.9));
+        expect(client.getValue<double>('missing_number_flag', 0), equals(0));
+        expect(client.getValue<double>('missing_number_flag', 99.9), equals(99.9));
         // Test same method with different call pattern
-        expect(client.getNumber('test_number_flag', 0), isA<num>());
+        expect(client.getValue<double>('test_number_flag', 0), isA<num>());
       });
       test('should evaluate JSON flags correctly', () {
         // Test with existing flags
         expect(
-            client.getJson('test_json_flag', {}), isA<Map<String, dynamic>>());
+            client.getValue<Map<String, dynamic>>('test_json_flag', {}), isA<Map<String, dynamic>>());
         // Test with fallback values
         final fallback = {'default': true};
-        expect(client.getJson('missing_json_flag', fallback), equals(fallback));
-        expect(client.getJson('missing_json_flag', {}), equals({}));
+        expect(client.getValue<Map<String, dynamic>>('missing_json_flag', fallback), equals(fallback));
+        expect(client.getValue<Map<String, dynamic>>('missing_json_flag', {}), equals({}));
       });
       test('should evaluate generic flags correctly', () {
         // Test generic flag evaluation with type parameters
         expect(
-            client.getFeatureFlag<bool>('test_bool_flag', false), isA<bool>());
-        expect(client.getFeatureFlag<String>('test_string_flag', 'default'),
+            client.getValue<bool>('test_bool_flag', false), isA<bool>());
+        expect(client.getValue<String>('test_string_flag', 'default'),
             isA<String>());
-        expect(client.getFeatureFlag<num>('test_number_flag', 0), isA<num>());
+        expect(client.getValue<num>('test_number_flag', 0), isA<num>());
         expect(
-            client.getFeatureFlag<Map<String, dynamic>>('test_json_flag', {}),
+            client.getValue<Map<String, dynamic>>('test_json_flag', {}),
             isA<Map<String, dynamic>>());
       });
       test('should handle edge cases in flag evaluation', () {
         // Test with empty/special flag keys
-        expect(client.getBoolean('', false), isA<bool>());
-        expect(client.getString('null', 'fallback'), isA<String>());
-        expect(client.getNumber('undefined', -1), isA<num>());
-        expect(client.getJson('missing', {'error': true}),
+        expect(client.getValue<bool>('', false), isA<bool>());
+        expect(client.getValue<String>('null', 'fallback'), isA<String>());
+        expect(client.getValue<double>('undefined', -1), isA<num>());
+        expect(client.getValue<Map<String, dynamic>>('missing', {'error': true}),
             isA<Map<String, dynamic>>());
         // Test with special characters in keys
-        expect(client.getBoolean('flag@#\$%', false), isA<bool>());
-        expect(client.getString('flag with spaces', 'default'), isA<String>());
-        expect(client.getNumber('flag.with.dots', 0), isA<num>());
+        expect(client.getValue<bool>('flag@#\$%', false), isA<bool>());
+        expect(client.getValue<String>('flag with spaces', 'default'), isA<String>());
+        expect(client.getValue<double>('flag.with.dots', 0), isA<num>());
       });
       test('should handle all flags operations', () {
         // This would test getAllFlags() method if available
@@ -231,7 +231,7 @@ void main() {
         complexUserBuilder.addBooleanProperty('beta_tester', false);
         final complexUserResult = complexUserBuilder.build().getOrThrow();
         final complexUser = complexUserResult;
-        await client.setUser(complexUser);
+        await client.user.setUser(complexUser);
         // User with edge case properties
         final edgeUserBuilder = CFUser.builder('edge-user');
         edgeUserBuilder.addStringProperty('empty', '');
@@ -240,31 +240,31 @@ void main() {
         edgeUserBuilder.addBooleanProperty('false_prop', false);
         final edgeUserResult = edgeUserBuilder.build().getOrThrow();
         final edgeUser = edgeUserResult;
-        await client.setUser(edgeUser);
+        await client.user.setUser(edgeUser);
       });
       test('should handle anonymous users', () async {
         final anonUser1Builder = CFUser.anonymousBuilder();
         anonUser1Builder.addStringProperty('source', 'test');
         final anonUser1Result = anonUser1Builder.build().getOrThrow();
         final anonUser1 = anonUser1Result;
-        await client.setUser(anonUser1);
+        await client.user.setUser(anonUser1);
         final anonUser2Builder = CFUser.anonymousBuilder();
         anonUser2Builder.addNumberProperty('session_count', 1);
         anonUser2Builder.addBooleanProperty('first_time', true);
         final anonUser2Result = anonUser2Builder.build().getOrThrow();
         final anonUser2 = anonUser2Result;
-        await client.setUser(anonUser2);
+        await client.user.setUser(anonUser2);
       });
       test('should clear user correctly', () async {
-        await client.clearUser();
+        await client.user.clearUser();
       });
       test('should set user after clearing', () async {
-        await client.clearUser();
+        await client.user.clearUser();
         final resetUserBuilder = CFUser.builder('reset-user');
         resetUserBuilder.addBooleanProperty('reset', true);
         final resetUserResult = resetUserBuilder.build().getOrThrow();
         final resetUser = resetUserResult;
-        await client.setUser(resetUser);
+        await client.user.setUser(resetUser);
       });
       test('should handle predefined test users', () async {
         final testUsers = [
@@ -273,7 +273,7 @@ void main() {
           TestConfigs.getUser(TestUserType.betaUser),
         ];
         for (final user in testUsers) {
-          await client.setUser(user);
+          await client.user.setUser(user);
         }
       });
     });
@@ -436,7 +436,7 @@ void main() {
         // Test operations before initialization completes
         expect(CFClient.isInitialized(), isFalse);
         // These calls should not crash
-        expect(() => CFClient.getInstance()?.getBoolean('test', false),
+        expect(() => CFClient.getInstance()?.getValue<bool>('test', false),
             returnsNormally);
       });
       test('should handle rapid initialization/shutdown cycles', () async {
@@ -463,9 +463,9 @@ void main() {
             .build();
         expect(client, isNotNull);
         // With initial flags, the value should be returned regardless of mode
-        expect(client.getBoolean('premium_feature', false),
+        expect(client.getValue<bool>('premium_feature', false),
             isTrue); // Initial flag value is true
-        expect(client.getBoolean('premium_feature', true),
+        expect(client.getValue<bool>('premium_feature', true),
             isTrue); // Custom default value works
       });
       test('should work with QuickTestClients', () async {

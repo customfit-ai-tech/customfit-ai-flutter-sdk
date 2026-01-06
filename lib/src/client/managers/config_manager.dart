@@ -6,10 +6,8 @@
 // This file is part of the CustomFit SDK for Flutter.
 
 import 'dart:async';
-import 'dart:convert';
 
 import '../../config/core/cf_config.dart';
-import '../../core/error/cf_result.dart';
 import '../../infrastructure/storage/internal/config_cache.dart';
 import '../../infrastructure/logging/logger.dart';
 import '../../analytics/summary/summary_manager.dart';
@@ -43,6 +41,9 @@ abstract class ConfigManager {
 
   /// Clear all listeners for a specific feature flag
   void clearConfigListeners(String key);
+
+  /// Clear all config listeners across all keys
+  void clearAllConfigListeners();
 
   /// Returns a map of all feature flags with their current values
   Map<String, dynamic> getAllFlags();
@@ -137,8 +138,7 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
         _connectionManager = connectionManager {
     // Default to enabled unless explicitly disabled
     _isSdkFunctionalityEnabled = true;
-    Logger.d(
-        'ConfigManagerImpl initialized with isSdkFunctionalityEnabled=true');
+    Logger.d('ConfigManager initialized');
 
     // Add self as connection status listener if connection manager is available
     _connectionManager?.addConnectionStatusListener(this);
@@ -158,12 +158,12 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
 
     // Skip cache loading if local storage is disabled
     if (!_config.localStorageEnabled) {
-      Logger.i('Local storage disabled, skipping cache loading');
+      Logger.d('Local storage disabled, skipping cache');
       _initialCacheLoadComplete = true;
       return;
     }
 
-    Logger.i('Loading configuration from cache...');
+    Logger.d('Loading config from cache...');
 
     // Cache policy configuration (for future use)
     // final cachePolicy = CachePolicy(
@@ -178,18 +178,15 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
         allowExpired: _config.useStaleWhileRevalidate);
 
     if (cacheResult.configMap != null) {
-      Logger.i(
-          'Found cached configuration with ${cacheResult.configMap!.length} entries');
+      Logger.i('Loaded ${cacheResult.configMap!.length} cached configs');
 
       // Update the config map with cached values
       _updateConfigMap(cacheResult.configMap!);
 
       // Set metadata for future conditional requests
       _previousLastModified = cacheResult.lastModified;
-
-      Logger.i('Successfully initialized from cached configuration');
     } else {
-      Logger.i('No cached configuration found, will wait for server response');
+      Logger.d('No cached config found');
     }
 
     _initialCacheLoadComplete = true;
@@ -344,7 +341,7 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
               await _configFetcher.fetchConfig(lastModified: lastModified);
 
           if (!configSuccess) {
-            Logger.w('🔎 API POLL: Failed to fetch config');
+            Logger.w('Failed to fetch config');
             _connectionManager
                 ?.recordConnectionFailure('Failed to fetch config');
             return;
@@ -393,7 +390,7 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
         // Silent when no changes - this is the normal case
       }
     } catch (e) {
-      Logger.e('🔎 API POLL: Error checking SDK settings: $e');
+      Logger.e('Error checking SDK settings: $e');
     } finally {
       _isCheckingSdkSettings = false;
     }
@@ -722,83 +719,43 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
       final config = synchronized(_configLock, () => _configMap[key]);
 
       if (config is Map<String, dynamic>) {
-        Logger.d('📊 SUMMARY: Raw config for key "$key": $config');
-
-        // Debug: Check if experience_behaviour_response exists
-        if (config.containsKey('experience_behaviour_response')) {
-          Logger.i(
-              '📊 SUMMARY: Found experience_behaviour_response in config for "$key"');
-          final ebr = config['experience_behaviour_response'];
-          Logger.i('📊 SUMMARY: experience_behaviour_response content: $ebr');
-        } else {
-          Logger.w(
-              '📊 SUMMARY: No experience_behaviour_response found in config for "$key"');
-          Logger.w(
-              '📊 SUMMARY: Available config keys: ${config.keys.toList()}');
-        }
-
-        // Debug: Log the entire config structure
-        Logger.i('📊 SUMMARY DEBUG: Full config structure for "$key":');
-        Logger.i(json.encode(config));
-
         // Create a copy to avoid modifying the original
         final configMapWithKey = Map<String, dynamic>.from(config);
-
-        // Add key to help with debugging
         configMapWithKey['key'] = key;
 
         // Extract fields from the API response structure
-        // Based on the API response, we need to extract from the config directly and experience_behaviour_response
-
-        // Get config_id (from top level)
         if (!configMapWithKey.containsKey('config_id')) {
           configMapWithKey['config_id'] = configMapWithKey['config_id'] ??
               configMapWithKey['id'] ??
               'default-config-id';
         }
 
-        // Get experience_id from experience_behaviour_response or fallback to id
+        // Get experience_id from experience_behaviour_response or fallback
         if (!configMapWithKey.containsKey('experience_id')) {
-          final experienceBehaviourResponse =
-              configMapWithKey['experience_behaviour_response']
-                  as Map<String, dynamic>?;
-
-          // Try to get experience_id from experience_behaviour_response first
-          String? experienceId =
-              experienceBehaviourResponse?['experience_id'] as String?;
-
-          // If not found, try the config's id field
+          final ebr = configMapWithKey['experience_behaviour_response']
+              as Map<String, dynamic>?;
+          String? experienceId = ebr?['experience_id'] as String?;
           if (experienceId == null || experienceId.isEmpty) {
-            experienceId = configMapWithKey['id'] as String?;
+            experienceId = configMapWithKey['id'] as String? ?? key;
           }
-
-          // If still not found, use the key as last resort
-          if (experienceId == null || experienceId.isEmpty) {
-            experienceId = key;
-            Logger.w(
-                '📊 SUMMARY: No experience_id found, using key "$key" as fallback');
-          }
-
           configMapWithKey['experience_id'] = experienceId;
         }
 
         // Get variation_id from top level or experience_behaviour_response
         if (!configMapWithKey.containsKey('variation_id')) {
-          final experienceBehaviourResponse =
-              configMapWithKey['experience_behaviour_response']
-                  as Map<String, dynamic>?;
+          final ebr = configMapWithKey['experience_behaviour_response']
+              as Map<String, dynamic>?;
           configMapWithKey['variation_id'] = configMapWithKey['variation_id'] ??
-              experienceBehaviourResponse?['variation_id'] ??
+              ebr?['variation_id'] ??
               configMapWithKey['id'] ??
               'default-variation-id';
         }
 
         // Extract rule_id from experience_behaviour_response
         if (!configMapWithKey.containsKey('rule_id')) {
-          final experienceBehaviourResponse =
-              configMapWithKey['experience_behaviour_response']
-                  as Map<String, dynamic>?;
-          final ruleId = experienceBehaviourResponse?['rule_id'];
+          final ebr = configMapWithKey['experience_behaviour_response']
+              as Map<String, dynamic>?;
+          final ruleId = ebr?['rule_id'];
           if (ruleId != null) {
             configMapWithKey['rule_id'] = ruleId;
           }
@@ -806,10 +763,9 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
 
         // Extract behaviour_id from experience_behaviour_response
         if (!configMapWithKey.containsKey('behaviour_id')) {
-          final experienceBehaviourResponse =
-              configMapWithKey['experience_behaviour_response']
-                  as Map<String, dynamic>?;
-          final behaviourId = experienceBehaviourResponse?['behaviour_id'];
+          final ebr = configMapWithKey['experience_behaviour_response']
+              as Map<String, dynamic>?;
+          final behaviourId = ebr?['behaviour_id'];
           if (behaviourId != null) {
             configMapWithKey['behaviour_id'] = behaviourId;
           }
@@ -821,25 +777,17 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
               configMapWithKey['version']?.toString() ?? '1.0.0';
         }
 
-        // Use async/await with pushSummary instead of then
-        Logger.i(
-            '📊 SUMMARY: Pushing summary for key: $key with config: ${json.encode(configMapWithKey)}');
+        // Push summary
         _summaryManager.pushSummary(configMapWithKey).then((result) {
-          Logger.i(
-              '📊 SUMMARY: Summary push result for key "$key": ${result.isSuccess ? "SUCCESS" : "FAILED"}');
           if (!result.isSuccess) {
-            Logger.w('📊 SUMMARY: Failed reason: ${result.getErrorMessage()}');
+            Logger.w('Summary push failed for "$key": ${result.getErrorMessage()}');
           }
         }).catchError((error) {
-          Logger.w(
-              'Failed to push summary for key "$key": ${error is CFResult ? error.getErrorMessage() : error}');
+          Logger.w('Summary push failed for "$key": $error');
         });
-      } else {
-        Logger.d(
-            '📊 SUMMARY: Config for "$key" is not a map, skipping summary push');
       }
     } catch (e) {
-      Logger.e('Exception while pushing summary for key "$key": $e');
+      Logger.e('Exception pushing summary for "$key": $e');
     }
   }
 
@@ -900,6 +848,16 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
     });
 
     // Silent - clearing listeners is routine
+  }
+
+  @override
+  void clearAllConfigListeners() {
+    synchronized(_configLock, () {
+      final count =
+          _configListeners.values.fold(0, (sum, list) => sum + list.length);
+      _configListeners.clear();
+      Logger.d('Cleared $count config listeners across all keys');
+    });
   }
 
   @override
@@ -1075,14 +1033,14 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
   @override
   void onConnectionStatusChanged(
       ConnectionStatus status, ConnectionInformation info) {
-    Logger.d('🔌 Connection status changed: $status');
+    Logger.d('Connection: $status');
 
     // Cancel any existing debounce timer
     _connectionDebounceTimer?.cancel();
 
     // If we just connected, check for updates with debouncing
     if (status == ConnectionStatus.connected) {
-      Logger.d('🔌 Connection restored, checking for config updates');
+      Logger.d('Connection restored, checking configs');
 
       // Debounce the check to prevent rapid successive calls
       _connectionDebounceTimer = Timer(const Duration(milliseconds: 500), () {
@@ -1109,7 +1067,7 @@ class ConfigManagerImpl implements ConfigManager, ConnectionStatusListener {
     required void Function(CFConfig) onConfigChange,
     required SummaryManager summaryManager,
   }) {
-    Logger.d('🔧 Setting up configuration change listeners');
+    Logger.d('Setting up config listeners');
 
     // No direct configuration change mechanism in this implementation
     // Configuration changes happen through SDK settings which are handled internally

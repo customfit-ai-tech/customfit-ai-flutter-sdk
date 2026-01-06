@@ -14,6 +14,9 @@ import '../core/model/context_type.dart';
 import '../client/managers/user_manager.dart';
 import '../infrastructure/logging/logger.dart';
 
+/// Callback for scheduling config refresh after user property changes
+typedef RefreshCallback = void Function();
+
 /// Facade component for user management operations
 ///
 /// This component encapsulates all user-related functionality including:
@@ -25,10 +28,18 @@ class CFClientUserManagement {
   static const _source = 'CFClientUserManagement';
 
   final UserManager _userManager;
+  final RefreshCallback? _onPropertyChange;
 
   CFClientUserManagement({
     required UserManager userManager,
-  }) : _userManager = userManager;
+    RefreshCallback? onPropertyChange,
+  })  : _userManager = userManager,
+        _onPropertyChange = onPropertyChange;
+
+  /// Internal helper to notify property changes
+  void _notifyPropertyChange() {
+    _onPropertyChange?.call();
+  }
 
   // MARK: - User Management
 
@@ -53,35 +64,37 @@ class CFClientUserManagement {
             category: ErrorCategory.configuration);
   }
 
-  // MARK: - User Properties
+  // MARK: - Simplified Property API (Recommended)
 
-  /// Add a property to the user
-  CFResult<void> addUserProperty(String key, dynamic value) =>
-      _userManager.addUserProperty(key, value);
+  /// Add a property to the user (unified method)
+  ///
+  /// This is the **recommended** method for adding user properties.
+  /// Supports all types: String, num, bool, `Map<String, dynamic>`.
+  ///
+  /// Example:
+  /// ```dart
+  /// client.user.addProperty('name', 'John');
+  /// client.user.addProperty('age', 25);
+  /// client.user.addProperty('premium', true, isPrivate: true);
+  /// ```
+  CFResult<void> addProperty(String key, dynamic value, {bool isPrivate = false}) {
+    final result = _userManager.addProperty(key, value, isPrivate: isPrivate);
+    if (result.isSuccess) _notifyPropertyChange();
+    return result;
+  }
 
-  /// Add a string property to the user
-  CFResult<void> addStringProperty(String key, String value) =>
-      _userManager.addStringProperty(key, value);
-
-  /// Add a number property to the user
-  CFResult<void> addNumberProperty(String key, num value) =>
-      _userManager.addNumberProperty(key, value);
-
-  /// Add a boolean property to the user
-  CFResult<void> addBooleanProperty(String key, bool value) =>
-      _userManager.addBooleanProperty(key, value);
-
-  /// Add a JSON property to the user
-  CFResult<void> addJsonProperty(String key, Map<String, dynamic> value) =>
-      _userManager.addJsonProperty(key, value);
-
-  /// Add a map property to the user
-  CFResult<void> addMapProperty(String key, Map<String, dynamic> value) =>
-      _userManager.addUserProperty(key, value);
-
-  /// Add multiple properties to the user
-  CFResult<void> addUserProperties(Map<String, dynamic> properties) =>
-      _userManager.addUserProperties(properties);
+  /// Add multiple properties to the user (unified method)
+  ///
+  /// Example:
+  /// ```dart
+  /// client.user.addProperties({'name': 'John', 'age': 25});
+  /// client.user.addProperties({'ssn': '123'}, isPrivate: true);
+  /// ```
+  CFResult<void> addProperties(Map<String, dynamic> properties, {bool isPrivate = false}) {
+    final result = _userManager.addProperties(properties, isPrivate: isPrivate);
+    if (result.isSuccess) _notifyPropertyChange();
+    return result;
+  }
 
   /// Get all user properties
   Map<String, dynamic> getUserProperties() => _userManager.getUserProperties();
@@ -92,30 +105,6 @@ class CFClientUserManagement {
   /// Remove multiple properties from the user
   CFResult<void> removeProperties(List<String> keys) =>
       _userManager.removeProperties(keys);
-
-  // MARK: - Private Property Methods
-
-  /// Add a private string property to the user
-  CFResult<void> addPrivateStringProperty(String key, String value) =>
-      _userManager.addPrivateStringProperty(key, value);
-
-  /// Add a private number property to the user
-  CFResult<void> addPrivateNumberProperty(String key, num value) =>
-      _userManager.addPrivateNumberProperty(key, value);
-
-  /// Add a private boolean property to the user
-  CFResult<void> addPrivateBooleanProperty(String key, bool value) =>
-      _userManager.addPrivateBooleanProperty(key, value);
-
-  /// Add a private map property to the user
-  CFResult<void> addPrivateMapProperty(
-          String key, Map<String, dynamic> value) =>
-      _userManager.addPrivateMapProperty(key, value);
-
-  /// Add a private JSON property to the user
-  CFResult<void> addPrivateJsonProperty(
-          String key, Map<String, dynamic> value) =>
-      _userManager.addPrivateJsonProperty(key, value);
 
   /// Mark an existing property as private
   CFResult<void> markPropertyAsPrivate(String key) =>

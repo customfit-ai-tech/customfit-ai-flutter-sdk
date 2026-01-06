@@ -19,11 +19,11 @@ void main() {
       test('should handle rapid sequential flag evaluations', () {
         final stopwatch = Stopwatch()..start();
         for (int i = 0; i < 10000; i++) {
-          client.getBoolean('perf_bool_$i', i % 2 == 0);
-          client.getString('perf_str_$i', 'default_$i');
-          client.getNumber('perf_num_$i', i.toDouble());
+          client.getValue<bool>('perf_bool_$i', i % 2 == 0);
+          client.getValue<String>('perf_str_$i', 'default_$i');
+          client.getValue<double>('perf_num_$i', i.toDouble());
           if (i % 100 == 0) {
-            client.getJson('perf_json_$i', {'index': i});
+            client.getValue<Map<String, dynamic>>('perf_json_$i', {'index': i});
           }
         }
         stopwatch.stop();
@@ -33,20 +33,20 @@ void main() {
       test('should handle large flag values efficiently', () {
         // Very large string - using default since we're in offline mode
         final largeString = 'x' * 100000;
-        expect(client.getString('large_string_flag', largeString),
+        expect(client.getValue<String>('large_string_flag', largeString),
             equals(largeString));
         // Very large JSON - using default since we're in offline mode
         final largeJson = Map.fromEntries(
             List.generate(1000, (i) => MapEntry('key_$i', 'value_$i')));
         expect(
-            client.getJson('large_json_flag', largeJson).length, equals(1000));
+            client.getValue<Map<String, dynamic>>('large_json_flag', largeJson).length, equals(1000));
       });
       test('should maintain consistency under concurrent load', () async {
         final futures = <Future>[];
         // Mix of operations
         for (int i = 0; i < 100; i++) {
-          futures.add(Future(() => client.getBoolean('load_test', false)));
-          futures.add(Future(() => client.getString('load_test', 'default')));
+          futures.add(Future(() => client.getValue<bool>('load_test', false)));
+          futures.add(Future(() => client.getValue<String>('load_test', 'default')));
           futures.add(Future(() => client.flagExists('load_test')));
           futures.add(Future(() => client.getAllFlags()));
         }
@@ -75,10 +75,10 @@ void main() {
         // Concurrent reads of different flag types
         for (int i = 0; i < 50; i++) {
           futures
-              .add(Future(() => client.getBoolean('concurrent_bool', false)));
-          futures.add(Future(() => client.getString('concurrent_string', '')));
-          futures.add(Future(() => client.getNumber('concurrent_num', 0)));
-          futures.add(Future(() => client.getJson('concurrent_json', {})));
+              .add(Future(() => client.getValue<bool>('concurrent_bool', false)));
+          futures.add(Future(() => client.getValue<String>('concurrent_string', '')));
+          futures.add(Future(() => client.getValue<double>('concurrent_num', 0)));
+          futures.add(Future(() => client.getValue<Map<String, dynamic>>('concurrent_json', {})));
         }
         final results = await Future.wait(futures);
         expect(results.length, equals(200));

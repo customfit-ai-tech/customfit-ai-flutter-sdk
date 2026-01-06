@@ -6,7 +6,6 @@
 // This file is part of the CustomFit SDK for Flutter.
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
@@ -19,7 +18,6 @@ import '../interfaces/http_client.dart';
 
 /// Implementation of HTTP client interface for CustomFit SDK
 class HttpClientImpl implements IHttpClient {
-  static const String _source = 'HttpClient';
   late final Dio _dio;
   final CFConfig _config;
 
@@ -40,15 +38,7 @@ class HttpClientImpl implements IHttpClient {
         'Authorization': 'Bearer ${_config.clientKey}',
       },
     ));
-
-    // Add simple logging interceptor
-    if (_config.debugLoggingEnabled) {
-      _dio.interceptors.add(LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (object) => Logger.d('[$_source] $object'),
-      ));
-    }
+    // Note: Removed verbose LogInterceptor - using minimal http() logging instead
   }
 
   /// Perform GET request
@@ -58,12 +48,16 @@ class HttpClientImpl implements IHttpClient {
     Map<String, dynamic>? queryParameters,
     Map<String, String>? headers,
   }) async {
+    final stopwatch = Stopwatch()..start();
     try {
       final response = await _dio.get<T>(
         path,
         queryParameters: queryParameters,
         options: Options(headers: headers),
       );
+      stopwatch.stop();
+
+      Logger.http('GET', path, response.statusCode, stopwatch.elapsedMilliseconds);
 
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&
@@ -82,7 +76,9 @@ class HttpClientImpl implements IHttpClient {
         );
       }
     } catch (e) {
-      Logger.e('[$_source] GET request failed: $e');
+      stopwatch.stop();
+      Logger.http('GET', path, null, stopwatch.elapsedMilliseconds);
+      Logger.e('GET $path failed: $e');
       return _handleError(e, 'GET', path);
     }
   }
@@ -95,53 +91,23 @@ class HttpClientImpl implements IHttpClient {
     Map<String, dynamic>? queryParameters,
     Map<String, String>? headers,
   }) async {
+    final stopwatch = Stopwatch()..start();
     try {
-      // Convert data to JSON string for logging
-      final payload = data != null ? jsonEncode(data) : '';
-      final url = path;
-
-      // Special logging for different endpoint types
-      if (url.contains("summary")) {
-        Logger.i('📊 SUMMARY HTTP: POST request');
-        Logger.i('📊 SUMMARY HTTP: Request body:');
-        Logger.i(_prettyPrintJson(payload));
-        Logger.i('📊 SUMMARY HTTP: Request body size: ${payload.length} bytes');
-      } else if (url.contains("events") || url.contains("cfe")) {
-        Logger.i('🔔 TRACK HTTP: POST request to event API');
-        Logger.i('🔔 TRACK HTTP: Request body:');
-        Logger.i(_prettyPrintJson(payload));
-        Logger.i('🔔 TRACK HTTP: Request body size: ${payload.length} bytes');
-      } else {
-        Logger.i('📮 HTTP: POST request to $url');
-        Logger.i('📮 HTTP: Request body:');
-        Logger.i(_prettyPrintJson(payload));
-      }
-
       final response = await _dio.post<T>(
         path,
         data: data,
         queryParameters: queryParameters,
         options: Options(headers: headers),
       );
+      stopwatch.stop();
+
+      Logger.http('POST', path, response.statusCode, stopwatch.elapsedMilliseconds);
 
       if (response.statusCode == 200 || response.statusCode == 202) {
-        // Log successful responses
-        if (url.contains("summary")) {
-          Logger.d('📊 SUMMARY: sent (${response.statusCode})');
-        } else if (url.contains("events") || url.contains("cfe")) {
-          Logger.d('🔔 TRACK: sent (${response.statusCode})');
-        }
         return CFResult.success(response.data as T);
       } else {
-        // Log error responses with body
         final body = response.data?.toString() ?? 'No response body';
-        if (url.contains("summary")) {
-          Logger.w('📊 SUMMARY HTTP: Error code: ${response.statusCode}');
-          Logger.w('📊 SUMMARY HTTP: Error body: $body');
-        } else if (url.contains("events") || url.contains("cfe")) {
-          Logger.w('🔔 TRACK HTTP: Error code: ${response.statusCode}');
-          Logger.w('🔔 TRACK HTTP: Error body: $body');
-        }
+        Logger.w('POST $path error: $body');
 
         return CFResult.error(
           'HTTP ${response.statusCode}: ${response.statusMessage}',
@@ -156,7 +122,9 @@ class HttpClientImpl implements IHttpClient {
         );
       }
     } catch (e) {
-      Logger.e('[$_source] POST request failed: $e');
+      stopwatch.stop();
+      Logger.http('POST', path, null, stopwatch.elapsedMilliseconds);
+      Logger.e('POST $path failed: $e');
       return _handleError(e, 'POST', path);
     }
   }
@@ -168,12 +136,16 @@ class HttpClientImpl implements IHttpClient {
     Map<String, dynamic>? queryParameters,
     Map<String, String>? headers,
   }) async {
+    final stopwatch = Stopwatch()..start();
     try {
       final response = await _dio.head(
         path,
         queryParameters: queryParameters,
         options: Options(headers: headers),
       );
+      stopwatch.stop();
+
+      Logger.http('HEAD', path, response.statusCode, stopwatch.elapsedMilliseconds);
 
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&
@@ -192,7 +164,9 @@ class HttpClientImpl implements IHttpClient {
         );
       }
     } catch (e) {
-      Logger.e('[$_source] HEAD request failed: $e');
+      stopwatch.stop();
+      Logger.http('HEAD', path, null, stopwatch.elapsedMilliseconds);
+      Logger.e('HEAD $path failed: $e');
       return _handleError(e, 'HEAD', path);
     }
   }
@@ -234,7 +208,7 @@ class HttpClientImpl implements IHttpClient {
         );
       }
     } catch (e) {
-      Logger.e('[$_source] Metadata fetch failed: $e');
+      Logger.e('Metadata fetch $url failed: $e');
       return _handleError(e, 'METADATA', url);
     }
   }
@@ -325,19 +299,6 @@ class HttpClientImpl implements IHttpClient {
       return CFErrorCode.httpInternalServerError;
     } else {
       return CFErrorCode.networkUnavailable;
-    }
-  }
-
-  /// Pretty print JSON for logging
-  String _prettyPrintJson(String jsonString) {
-    try {
-      if (jsonString.isEmpty) return '';
-      final object = jsonDecode(jsonString);
-      const encoder = JsonEncoder.withIndent('  ');
-      return encoder.convert(object);
-    } catch (e) {
-      // If JSON parsing fails, return the original string
-      return jsonString;
     }
   }
 

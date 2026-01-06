@@ -1,0 +1,191 @@
+name: Release & Publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+
+      - name: Get version info
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          else
+            TAG=${GITHUB_REF#refs/tags/}
+            VERSION=${TAG#v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ steps.version.outputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\+[0-9]+)?(-[a-zA-Z0-9\-]+)?$ ]]; then
+            echo "Invalid version format: ${{ steps.version.outputs.version }}"
+            echo "Expected format: X.Y.Z, X.Y.Z+build, or X.Y.Z-prerelease"
+            exit 1
+          fi
+
+      - name: Update pubspec.yaml version
+        run: |
+          sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}/" pubspec.yaml
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add pubspec.yaml
+          git diff --staged --quiet || git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Check pub publish dry run
+        run: dart pub publish --dry-run
+
+      - name: Generate release changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: ".github/changelog-config.json"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          toTag: ${{ steps.version.outputs.tag }}
+          fetchViaCommits: true
+          commitMode: true
+
+      - name: Update CHANGELOG.md
+        run: |
+          # Create changelog if it doesn't exist
+          if [ ! -f CHANGELOG.md ]; then
+            cat > CHANGELOG.md << 'EOF'
+          # Changelog
+
+          All notable changes to this project will be documented in this file.
+
+          The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+          and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+          EOF
+          fi
+
+          # Prepare new changelog entry
+          cat > temp_changelog.md << 'EOF'
+          ## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
+
+          ${{ steps.changelog.outputs.changelog }}
+
+          EOF
+
+          # Insert new entry after the header
+          head -n 6 CHANGELOG.md > new_changelog.md
+          cat temp_changelog.md >> new_changelog.md
+          tail -n +7 CHANGELOG.md >> new_changelog.md
+          mv new_changelog.md CHANGELOG.md
+          rm temp_changelog.md
+
+          # Commit changelog
+          git add CHANGELOG.md
+          git diff --staged --quiet || git commit -m "chore: update changelog for v${{ steps.version.outputs.version }}"
+
+      - name: Push changes
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin main
+          git push origin ${{ steps.version.outputs.tag }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Release ${{ steps.version.outputs.version }}"
+          body: |
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation
+
+            Add this to your package's `pubspec.yaml` file:
+
+            ```yaml
+            dependencies:
+              customfit_ai_flutter_sdk: ^${{ steps.version.outputs.version }}
+            ```
+
+            Then run:
+            ```bash
+            flutter pub get
+            ```
+
+            ## Security Notes
+
+            🔒 This release includes important security improvements. Please update as soon as possible.
+
+            ## Full Changelog
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.version.outputs.previous_version }}...${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          generate_release_notes: true
+
+      - name: Setup Pub Credentials
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p ~/.pub-cache
+          cat > ~/.pub-cache/credentials.json << 'EOF'
+          {
+            "accessToken": "${{ secrets.PUB_DEV_ACCESS_TOKEN }}",
+            "refreshToken": "${{ secrets.PUB_DEV_REFRESH_TOKEN }}",
+            "tokenEndpoint": "https://accounts.google.com/o/oauth2/token",
+            "scopes": ["openid", "https://www.googleapis.com/auth/userinfo.email"],
+            "expiration": 1234567890000
+          }
+          EOF
+
+      - name: Publish to pub.dev
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(steps.version.outputs.version, '-')
+        run: dart pub publish --force
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Release ${{ steps.version.outputs.version }} failed`,
+              body: `The automated release process failed for version ${{ steps.version.outputs.version }}.\n\nPlease check the [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`,
+              labels: ['bug', 'release', 'automation']
+            }) 

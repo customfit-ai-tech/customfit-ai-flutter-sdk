@@ -255,7 +255,7 @@ void main() {
           TestUserType.organizationUser
         ];
         for (final userType in userTypes) {
-          await client.setUser(TestConfigs.getUser(userType));
+          await client.user.setUser(TestConfigs.getUser(userType));
           final result = await client.trackEvent('user_integration_test',
               properties: {
                 'user_type': userType.name,
@@ -267,9 +267,9 @@ void main() {
       });
       test('should integrate with feature flag evaluations', () async {
         // Track events based on feature flag values
-        final boolFlag = client.getBoolean('analytics_enabled', true);
-        final stringFlag = client.getString('analytics_mode', 'full');
-        final numberFlag = client.getNumber('analytics_sample_rate', 1.0);
+        final boolFlag = client.getValue<bool>('analytics_enabled', true);
+        final stringFlag = client.getValue<String>('analytics_mode', 'full');
+        final numberFlag = client.getValue<double>('analytics_sample_rate', 1.0);
         final result =
             await client.trackEvent('feature_flag_integration', properties: {
           'analytics_enabled': boolFlag,
@@ -516,7 +516,7 @@ void main() {
         expect(client, isNotNull);
         final result = await client.trackEvent('fluent_api_test', properties: {
           'builder_test': true,
-          'enhanced_analytics': client.getBoolean('analytics_enhanced', false)
+          'enhanced_analytics': client.getValue<bool>('analytics_enhanced', false)
         });
         expect(result, isA<CFResult<void>>());
         expect(result.isSuccess, isTrue);

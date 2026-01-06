@@ -131,6 +131,11 @@ class MockEventTracker implements EventTracker {
   void onConnectionStatusChanged(dynamic status, dynamic info) {
     // Mock implementation - no-op
   }
+
+  @override
+  void setConfigManager(dynamic configManager) {
+    // Mock implementation - no-op
+  }
   
   void setOnBackpressureAppliedCallback(
       void Function(Map<String, dynamic>)? callback) {
